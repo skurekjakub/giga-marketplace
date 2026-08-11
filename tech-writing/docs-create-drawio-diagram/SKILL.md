@@ -1,7 +1,18 @@
 ---
 name: docs-create-drawio-diagram
-description: Create or edit draw.io diagrams for docs pages and save them as editable .drawio.svg assets under public/docsassets. Use this skill whenever the user asks for a diagram, flowchart, architecture overview, process/upgrade-path visual, or any .drawio / .drawio.svg file — creating a new one, restyling an existing one, or changing boxes/arrows/labels in a diagram embedded on a docs page — even if they don't say "draw.io" explicitly. Also use it when a task involves reading the diagram source out of an existing .drawio.svg asset.
+description: Create or edit draw.io diagrams for docs pages and save them as editable .drawio.svg assets under {{ASSETS_ROOT}}. Use this skill whenever the user asks for a diagram, flowchart, architecture overview, process/upgrade-path visual, or any .drawio / .drawio.svg file — creating a new one, restyling an existing one, or changing boxes/arrows/labels in a diagram embedded on a docs page — even if they don't say "draw.io" explicitly. Also use it when a task involves reading the diagram source out of an existing .drawio.svg asset.
 ---
+
+> **Template skill — fill in before use.** Replace every `{{...}}` placeholder with your docs repo's specifics (search for `{{` to find them all), then delete this block. The workflow and scripts are generic; only the paths and house style are yours to define.
+>
+> | Placeholder | Meaning |
+> |---|---|
+> | `{{ASSETS_ROOT}}` | Root directory for docs image assets (e.g., `public/assets`) |
+> | `{{STYLE_GUIDE_PATH}}` | Your diagram style guide (shape libraries, palette, font) |
+> | `{{EXAMPLE_DIAGRAM_PATH}}` | A reference diagram in the house style |
+> | `{{ELEMENT_COLOR}}` / `{{CONNECTOR_COLOR}}` | Brand colors for shapes and connectors |
+> | `{{BRAND_FONT}}` | The font your diagrams reference |
+> | `{{MARKDOWN_SYNTAX_REF}}` | Doc describing your docs platform's image/asset syntax |
 
 # Create draw.io diagrams
 
@@ -39,21 +50,22 @@ Playwright cache, else `npx playwright install chromium`.
 
 ## Where the file goes
 
-`public/docsassets/<collection>/<page-slug>/<diagram-name>.drawio.svg`
+`{{ASSETS_ROOT}}/<collection>/<page-slug>/<diagram-name>.drawio.svg`
 
 The directory tree of the source page is dropped — only the collection name and
 the page's final slug are used, the same `(collection, page-slug)` convention
-every other asset tag resolves against (see `.ai/resources/markdown-syntax.md`).
-Create the directory if it doesn't exist.
+every other asset tag resolves against (see `{{MARKDOWN_SYNTAX_REF}}`).
+Create the directory if it doesn't exist. Adapt this section if your docs repo
+uses a different asset-path convention.
 
-**Source page:** `content/documentation/developers-and-admins/digital-commerce-setup/implement-checkout-process/implement-price-calculation.mdx`
-**Asset:** `public/docsassets/documentation/implement-price-calculation/price-calculation-flow.drawio.svg`
+**Source page:** `content/documentation/guides/authentication/implement-single-sign-on.mdx`
+**Asset:** `{{ASSETS_ROOT}}/documentation/implement-single-sign-on/sso-login-flow.drawio.svg`
 
 ## Before drawing anything
 
-Read `.ai/resources/styleguides/drawio-diagrams.md` — it fixes the shape
-libraries, color palette (`#AF00FA` elements, `#BCA39A` connectors), and the
-GT Walsheim font. `.ai/resources/styleguides/drawio-diagrams-example.drawio`
+Read `{{STYLE_GUIDE_PATH}}` — it fixes the shape
+libraries, color palette (`{{ELEMENT_COLOR}}` elements, `{{CONNECTOR_COLOR}}` connectors), and the
+`{{BRAND_FONT}}` font. `{{EXAMPLE_DIAGRAM_PATH}}`
 is a reference diagram in the house style. Icons are welcome where they aid
 comprehension; skip cutesy embellishment on highly technical diagrams — keep
 the target audience in mind.
@@ -67,7 +79,7 @@ the target audience in mind.
    are only visible rendered — never call a diagram done without viewing it.
 
 The `.drawio.svg` is the only deliverable — it goes straight into the page via
-the standard MDX image syntax (see `.ai/resources/markdown-syntax.md`).
+the standard image syntax for your docs platform (see `{{MARKDOWN_SYNTAX_REF}}`).
 The screenshot and the intermediate `model.xml` are verification scratch
 files: keep them in a temp directory, never next to the asset, never
 committed.
@@ -94,9 +106,9 @@ a diagram meant to sit on whatever is behind it.
   `image=data:image/svg+xml,<base64>` — never `;base64,`. Semicolons delimit
   style keys in mxGraph, so `;base64` silently truncates the style and the
   image breaks.
-- **Font renders as serif in local screenshots.** Assets reference
-  `GT Walsheim` by name without embedding it (matching every existing asset);
-  machines without the font fall back to serif. Judge layout from the
+- **Font may render as a fallback in local screenshots.** Assets reference
+  `{{BRAND_FONT}}` by name without embedding it (matching every existing asset);
+  machines without the font fall back to a default. Judge layout from the
   screenshot, not typography.
 - **Keep the default 40px border.** Existing assets use it; a flush canvas
   looks cropped on the page.
@@ -104,7 +116,7 @@ a diagram meant to sit on whatever is behind it.
   along a path rather than a station on it. Put the text in the edge's
   `value` and set `labelBackgroundColor=#FFFFFF` so the line doesn't strike
   through it.
-- **Stable, semantic cell ids** (`kx13core`, `legendBox`) — the next editing
+- **Stable, semantic cell ids** (`authCore`, `legendBox`) — the next editing
   session greps for them.
 
 ## Verification checklist
@@ -112,5 +124,5 @@ a diagram meant to sit on whatever is behind it.
 - Screenshot reviewed (layout, no overlaps, arrows point the right way).
 - Export script reported `roundtrip ok` (file still opens in the drawio editor).
 - File lives under the correct `(collection, page-slug)` directory.
-- Page embeds the asset with the standard MDX image syntax.
+- Page embeds the asset with the standard image syntax.
 - Only the `.drawio.svg` is staged — no `.png`, no loose `model.xml`.
