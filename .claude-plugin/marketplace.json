@@ -4,6 +4,7 @@
     "name": "skurekj",
     "email": "skurekjakub@gmail.com"
   },
+  "description": "A collection of skills for agentic engineering, technical writing, and agent harness work — including scaffolded, customizable tech-writing skill templates.",
   "plugins": [
     {
       "name": "agentic-work",
