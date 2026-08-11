@@ -11,7 +11,6 @@ description: >-
 > | `{{PRODUCT_NAME}}` | The product the release notes describe |
 > | `{{DOCS_LINK_SYNTAX}}` | How documentation links are written on your docs platform |
 > | `{{RELEASE_NOTES_PATH}}` | Where release note files live in your docs repo |
-> | `{{RELEASE_SCAFFOLD_SKILL}}` | Your skill or doc describing release folder/naming conventions (drop that sentence if you have none) |
 
 Act as a senior technical writer specializing in product release notes. Your task is to write a clear, user-focused release note for the feature discussed in this conversation.
 
@@ -121,4 +120,4 @@ Provide, as **inline text in your reply** and nothing else:
 
 Do not create, edit, or stage any file — in particular nothing under `{{RELEASE_NOTES_PATH}}`, and no scratch draft file either. The user reviews and reworks the wording before it goes anywhere.
 
-Writing the note into a release folder is a separate, explicitly requested step: "add it to the release", "generate the composite page", "put it in the `<date>` folder". Only then produce a file, and use the `{{RELEASE_SCAFFOLD_SKILL}}` skill for the folder and naming conventions rather than inventing a path. Until the user asks, assume they only want the text.
+Writing the note into a release folder is a separate, explicitly requested step: "add it to the release", "generate the composite page", "put it in the `<date>` folder". Only then produce a file, following your repo's release folder and naming conventions rather than inventing a path. Until the user asks, assume they only want the text.

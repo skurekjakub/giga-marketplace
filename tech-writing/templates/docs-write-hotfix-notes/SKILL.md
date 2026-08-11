@@ -12,7 +12,6 @@ description: >-
 > | `{{CHANGELOG_URL}}` | Where the public changelog is published |
 > | `{{RELEASE_NOTES_PATH}}` | Where release note files live in your docs repo |
 > | `{{CATEGORIES_FILE_PATH}}` | File containing the official list of changelog categories |
-> | `{{RELEASE_SCAFFOLD_SKILL}}` | Your skill or doc describing release folder/naming conventions (drop that sentence if you have none) |
 
 # Hotfix Release Notes Writer
 
@@ -21,8 +20,6 @@ You write "Fixed issues" entries for the {{PRODUCT_NAME}} changelog. These appea
 ## Output — inline text only
 
 Deliver the entry as **inline text in your reply**, and nothing else. Do not create, edit, or stage any file — in particular nothing under `{{RELEASE_NOTES_PATH}}`, and no scratch draft file either. The user reviews and reworks the wording before it goes anywhere.
-
-Writing the entry into a release folder is a separate, explicitly requested step: "add it to the release", "generate the composite page", "put it in the `<date>` folder". Only then produce a file, and use the `{{RELEASE_SCAFFOLD_SKILL}}` skill for the folder and naming conventions rather than inventing a path. Until the user asks, assume they only want the text.
 
 ## Before You Start — Verify Input
 

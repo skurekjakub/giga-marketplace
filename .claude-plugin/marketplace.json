@@ -1,0 +1,29 @@
+{
+  "name": "giga-skills",
+  "owner": {
+    "name": "skurekj",
+    "email": "skurekjakub@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "agentic-work",
+      "source": "./agentic-work",
+      "description": "Skills for designing, building, and evaluating agentic systems — agent-as-function refactoring and audits, fractal orchestrator architectures, workflow evals, skill and agent creation, task-graph planning, and autonomous loops."
+    },
+    {
+      "name": "general",
+      "source": "./general",
+      "description": "General-purpose working skills — iterative deep research and handling files too large to read in one pass."
+    },
+    {
+      "name": "harnesses",
+      "source": "./harnesses",
+      "description": "Skills for working with specific agent harnesses — Copilot CLI debug log analysis, extension development, and patching."
+    },
+    {
+      "name": "tech-writing",
+      "source": "./tech-writing",
+      "description": "Scaffolds customizable tech-writing skills into your project — release notes, hotfix notes, docs-vs-source validation, and draw.io diagram authoring — filled in with your product's specifics."
+    }
+  ]
+}
