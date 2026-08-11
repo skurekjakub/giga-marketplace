@@ -7,3 +7,5 @@ The repo is also a Claude Code marketplace, so you can run:
 ```
 
 and install each category as a standalone plugin.
+
+OOB support is for Claude Code only, copy and adapt the sills for other harnesses as needed.
