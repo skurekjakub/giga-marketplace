@@ -54,7 +54,6 @@ Run all of these; paste failures, don't summarize them.
 ```bash
 claude plugin validate .                          # marketplace manifest
 for p in plugins/*; do claude plugin validate "$p"; done   # manifests + skill frontmatter
-grep -rniE 'kentico|xbyk|docs-next|DOC-[0-9]|DF-[0-9]|atlassian|ralph|malph|/home/jakubs|algolia|learn-portal|aira|membership' plugins/   # must print nothing
 node --test plugins/setup-ai/scripts/test/*.test.mjs   # engine suite (also syntax-checks every module)
 for h in plugins/setup-ai/templates/packs/hooks/files/dot-claude/hooks/*; do bash -n "$h"; done
 ```

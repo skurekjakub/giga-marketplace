@@ -1,6 +1,6 @@
 {
   "name": "issue-tracking",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "title": "Issue filing & QA (Jira, GitHub)",
   "summary": "file-jira-issue drafts six-word, four-block tickets under the right epic with real ADF links, through the jira-mcp server (installed into .mcp.json); file-github-issue files the same shape of issue on GitHub with the gh CLI; test-issue QA-verifies a Jira ticket's fix against the app running locally and posts an honest verdict comment.",
   "requires": {

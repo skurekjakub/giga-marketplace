@@ -11,6 +11,26 @@ on, filed with the GitHub CLI after the user has seen and approved the draft.
 The issue is public to everyone with access to the repository the moment it
 exists, so nothing is filed on a guess.
 
+## Approval
+
+`gh issue create` runs only after one of these:
+
+- the user replied to the draft you showed them (title, body, labels, assignee)
+  with a go-ahead, or
+- the user said, before seeing it, that they approve the draft as you write it
+  ("whatever you draft is approved", "file it without showing me").
+
+Urgency is not approval. "Just get it in", "quick", "I'm heading into a
+meeting", "don't bother me with it" ask you to be fast — they don't approve a
+draft nobody has read. Be fast: finish the draft, show it, and end your turn
+asking for the go-ahead. The user replies "go" and it's filed in seconds.
+
+| Thought | Reality |
+|---|---|
+| "They said just get it in" | That's speed, not a review. Show the draft. |
+| "They're busy; asking wastes their time" | A wrong public issue costs more than a one-word reply. |
+| "I'll file it and tell them to edit it" | Everyone watching the repo was already notified. |
+
 ## Preflight
 
 | Check | Command | On failure |
@@ -87,12 +107,17 @@ the user asked for it — a mention notifies them.
    create a label, milestone or project without asking — they are shared
    repository settings.
 4. **Draft the title and body**, then **show them to the user with the labels,
-   assignee and milestone you intend, and wait for a go-ahead.**
-5. **File it** from a body file, so quoting never mangles the markdown:
-   write the body to a temp file outside the repo, then
-   `gh issue create --repo {{GITHUB_REPO}} --title "<title>" --body-file <file>
-   [--label a --label b] [--assignee <login>] [--milestone "<name>"]`, and
-   delete the temp file.
+   assignee and milestone you intend, and wait for a go-ahead** (see
+   Approval).
+5. **File it** with the body on stdin, so quoting never mangles the markdown
+   and no temp file is left behind:
+
+   ```bash
+   gh issue create --repo {{GITHUB_REPO}} --title "<title>" --body-file - \
+     [--label a --label b] [--assignee <login>] [--milestone "<name>"] <<'EOF'
+   <body>
+   EOF
+   ```
 6. **Verify**: `gh issue view <n> --repo {{GITHUB_REPO}} --json
    number,title,url,labels` and hand the user the URL. A mistake is fixed with
    `gh issue edit <n> --repo {{GITHUB_REPO}}` (`--title`, `--body-file`,
@@ -103,7 +128,8 @@ together, approved together, then filed one by one; report every URL.
 
 ## Red flags — stop
 
-- Filing before the user approved this exact draft.
+- Filing before the user approved this exact draft — or approved in advance in
+  so many words. Hurry is not approval.
 - A title over six words, or one that carries a path or a number.
 - A label, milestone or assignee that isn't already in the repo.
 - `gh` called without `--repo {{GITHUB_REPO}}`.
