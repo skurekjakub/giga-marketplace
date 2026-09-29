@@ -87,8 +87,14 @@ affected and what it unblocks.>
 ## References
 
 - #123 — source issue
-- <PR, doc, commit or follow-up file>
+- <PR, doc, commit or file, cited by number, URL or path — never by quoting
+  its title or heading>
 ```
+
+All four headings appear in every issue; with no linked source, References
+lists the files the change lands in. What stays out of a public issue (secrets,
+internal hostnames, customer details — see Red flags) stays out of every
+section, References included: a cited file's heading is quoted text too.
 
 GitHub renders this markdown as written: `#123`, `owner/repo#123`, commit SHAs,
 `@user` and bare URLs become links on their own. `@`-mention someone only when
