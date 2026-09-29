@@ -1,0 +1,8 @@
+# LF everywhere: hook scripts run under bash, and run-hook.cmd is a cmd/bash
+# polyglot that bash can only parse with LF endings.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.svg text eol=lf
