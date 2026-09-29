@@ -105,7 +105,7 @@ For each identified subagent, specify:
 
 ### scribe
 - **Role**: Write JIRA handoff comment summarizing all work done
-- **Model**: claude-sonnet-4.5 (formatting, cheaper)
+- **Model**: sonnet (formatting, cheaper)
 - **Reads**: All `*/output.md` artifacts, `manifest.json`
 - **Writes**: `scribe/output.md` — formatted JIRA comment and attachment
 - **Result codes**: `delivered`

@@ -23,7 +23,7 @@ List every knowledge domain the agent family needs:
 
 | Skill | Covers domain | Used by |
 |---|---|---|
-| {e.g., agent-eval} | {Quality evaluation} | {post-task hook} |
+| {e.g., agent-fractal-workflow-eval} | {Quality evaluation} | {post-task hook} |
 
 ### Extend (existing skills, need updates)
 

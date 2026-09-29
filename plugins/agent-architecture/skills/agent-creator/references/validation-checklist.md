@@ -8,17 +8,17 @@ Use this checklist during Phase 6. Check every item. Failures must be fixed befo
 
 ## 1. Template Rendering
 
-- [ ] All `.agent.md` files render without Liquid errors
-- [ ] All `{% render %}` references resolve to existing partials
+- [ ] All agent files render without template errors (if the harness renders templates)
+- [ ] All include/partial references resolve to existing files
 - [ ] All `{% section %}` / `{% endsection %}` tags are balanced
-- [ ] Liquid conditionals (`{% if %}`, `{% unless %}`) are syntactically correct
+- [ ] Template conditionals are syntactically correct
 - [ ] Template integration tests pass (if available)
 
 ## 2. Configuration
 
-- [ ] `profile.json` is valid JSON
-- [ ] `profile.json` references correct agent files in stage pipeline
-- [ ] All agents in `profile.json` stages exist as `.agent.md` files
+- [ ] The harness config (if any) parses
+- [ ] The harness config references the correct entry-point agent
+- [ ] Every agent the config names exists in `<agents-dir>`
 - [ ] MCP server declarations reference existing server manifests
 - [ ] Match rules are specific enough to avoid false matches with other profiles
 
@@ -62,7 +62,7 @@ Use this checklist during Phase 6. Check every item. Failures must be fixed befo
 
 ## 8. Subagent Completeness
 
-- [ ] Every subagent in the orchestrator's roster has a corresponding `.agent.md` file
+- [ ] Every subagent in the orchestrator's roster has a corresponding file in `<agents-dir>`
 - [ ] Every agent in the frontmatter `agents:` list matches the file naming convention
 - [ ] Every subagent declares input artifacts, output artifacts, and result codes
 - [ ] Every subagent's result codes match what the orchestrator's routing table expects
@@ -70,7 +70,7 @@ Use this checklist during Phase 6. Check every item. Failures must be fixed befo
 
 ## 9. Skill References
 
-- [ ] Every skill referenced in agent templates or workflow skills exists in `.github/skills/`
+- [ ] Every skill referenced in agent templates or workflow skills exists in `<skills-dir>`
 - [ ] Skill descriptions accurately describe their trigger conditions
 - [ ] Skill mount lists in the architecture match what's configured in profile/agent setup
 
@@ -110,11 +110,10 @@ Use this checklist during Phase 6. Check every item. Failures must be fixed befo
 
 | File | Type | Status |
 |---|---|---|
-| `profiles/{profile}/profile.json` | Config | {Created / Updated} |
-| `profiles/{profile}/agents/ralph.{name}.agent.md` | Orchestrator | {Created} |
-| `profiles/{profile}/agents/ralph.{subagent}.agent.md` | Subagent stub | {Created} |
-| `shared/agent-includes/{profile}/{subagent}.md` | Subagent partial | {Created} |
-| `.github/skills/{skill}/SKILL.md` | Skill | {Created} |
+| `<harness-config>` | Config (if any) | {Created / Updated} |
+| `<agents-dir>/{name}` | Orchestrator | {Created} |
+| `<agents-dir>/{subagent}` | Subagent | {Created} |
+| `<skills-dir>/{skill}/SKILL.md` | Skill | {Created} |
 
 **Total files:** {N} created, {M} updated
 **Validation findings:** {N} found, {N} fixed

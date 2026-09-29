@@ -10,8 +10,8 @@ Use this template for the Phase 2 deliverable. Reference `agent-as-function/refe
 
 | Name | Model | Role | Conditional? |
 |---|---|---|---|
-| {subagent-1} | {claude-opus-4.6} | {One-line role} | {No / Yes — condition} |
-| {subagent-2} | {claude-sonnet-4} | {One-line role} | {No / Yes — condition} |
+| {subagent-1} | {opus} | {One-line role} | {No / Yes — condition} |
+| {subagent-2} | {sonnet} | {One-line role} | {No / Yes — condition} |
 
 ## Routing Table
 
@@ -71,15 +71,15 @@ Use this template for the Phase 2 deliverable. Reference `agent-as-function/refe
 └── manifest.json
 ```
 
-**Artifact root:** `{e.g., .ralph/tasks/{task-id}/artifacts/}`
+**Artifact root:** `{e.g., .agent-work/tasks/{task-id}/artifacts/}`
 
 ## Model Allocation
 
 | Agent | Model | Rationale |
 |---|---|---|
-| orchestrator | {claude-opus-4.6} | {Routing complexity requires strong reasoning} |
-| {subagent-1} | {claude-opus-4.6} | {Deep analysis / coding / review} |
-| {subagent-2} | {claude-sonnet-4} | {Mechanical extraction / formatting} |
+| orchestrator | {opus} | {Routing complexity requires strong reasoning} |
+| {subagent-1} | {opus} | {Deep analysis / coding / review} |
+| {subagent-2} | {sonnet} | {Mechanical extraction / formatting} |
 
 ## Iteration Loops
 
@@ -118,7 +118,7 @@ Hard sequencing rules that must never be violated:
 
 | Hook | Purpose | Model |
 |---|---|---|
-| {e.g., run-analyzer} | {Per-subagent quality analysis} | {claude-opus-4.6} |
+| {e.g., run-analyzer} | {Per-subagent quality analysis} | {opus} |
 
 {If no post-task hooks, write "None planned for initial version."}
 

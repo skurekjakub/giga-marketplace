@@ -1,18 +1,18 @@
 ---
 name: copilot-cli-debug-log-analysis
-description: "Parse and analyze Ralph CLI debug logs (cli-debug.log) to extract subagent spans, tool call sequences, token consumption, context compaction events, and error patterns. Use this skill whenever you need to manually parse a cli-debug.log file — for example when the subagent-mapper's pre-extracted data is insufficient or missing, when debugging a specific subagent's behavior in detail, or when investigating infrastructure issues visible only in raw logs. Trigger on phrases like 'parse the debug log', 'extract subagent spans', 'analyze tool calls from the log', 'what happened in the cli-debug log', or 'dig into the raw log'."
+description: "Parse and analyze Copilot CLI debug logs (cli-debug.log), including logs from agent runners built on it, to extract subagent spans, tool call sequences, token consumption, context compaction events, and error patterns. Use this skill whenever you need to manually parse a cli-debug.log file — for example when a log-summarizing agent's pre-extracted data is insufficient or missing, when debugging a specific subagent's behavior in detail, or when investigating infrastructure issues visible only in raw logs. Trigger on phrases like 'parse the debug log', 'extract subagent spans', 'analyze tool calls from the log', 'what happened in the cli-debug log', or 'dig into the raw log'."
 ---
 
 # CLI Debug Log Analysis
 
-Ralph's CLI (Copilot CLI or Claude Code) produces a debug log (`*-cli-debug.log`) for every execution. This log is the richest data source for understanding what happened during a run — it contains per-subagent lifecycle events, tool call telemetry, model resolution, token usage, and context window pressure.
+Copilot CLI (and agent runners that wrap it) produces a debug log (`*-cli-debug.log`) for every execution. This log is the richest data source for understanding what happened during a run — it contains per-subagent lifecycle events, tool call telemetry, model resolution, token usage, and context window pressure.
 
 Typical log size: **10K–40K lines**. Never read the entire file at once — use `grep`, `sed`, and `awk` to extract targeted data.
 
 ## When to Use
 
-- **Primary**: When the subagent-mapper's pre-extracted data is unavailable or incomplete
-- **Fallback**: When you need to drill deeper into a specific subagent's behavior than the mapper provided
+- **Primary**: When a log-summarizing agent's pre-extracted data is unavailable or incomplete
+- **Fallback**: When you need to drill deeper into a specific subagent's behavior than that summary provided
 - **Debugging**: When investigating infrastructure issues (model fallback, MCP errors, context compaction)
 
 ## Log Structure

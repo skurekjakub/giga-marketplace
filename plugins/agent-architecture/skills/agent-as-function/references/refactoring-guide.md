@@ -40,7 +40,7 @@ orchestrator → dispatch analyst → receives report → dispatch coder("implem
 After:
 ```
 orchestrator → dispatch analyst → receives "Done. result: analyzed."
-orchestrator → dispatch coder("task-id: DOC-3167") → coder reads analyst/output.md itself
+orchestrator → dispatch coder("task-id: TASK-123") → coder reads analyst/output.md itself
 ```
 
 ### Step 5: Don't change internals
@@ -69,7 +69,7 @@ When building or modifying an orchestrator agent template:
 | analyst | gpt-5.4 | Analyze task, produce implementation plan |
 | coder | gpt-5.4 | Implement changes |
 | reviewer | gpt-5.4 | Review implementation |
-| scribe | claude-sonnet-4.5 | Write JIRA handoff |
+| scribe | sonnet | Write JIRA handoff |
 
 ## Routing Table
 | Agent completed | result | Action |
@@ -80,14 +80,14 @@ When building or modifying an orchestrator agent template:
 | reviewer | needs-revision | dispatch coder (iteration++) |
 
 ## Artifact Root
-`.ralph/tasks/{task-id}/artifacts/`
+`.agent-work/tasks/{task-id}/artifacts/`
 
 ## Administrative Duties (orchestrator does these itself)
 - Create/switch git branch
 - Commit and push after coder completes
 - Create PR after final review approval
 - Transition JIRA issue status
-- Write the ===RALPH_RESULT_START=== exit block
+- Write the ===RESULT_START=== exit block
 
 ## Rules
 - Read ONLY status.json from each subagent
@@ -109,8 +109,8 @@ When building a subagent template:
 3. **Declare output artifacts** — what files does this subagent write?
    ```markdown
    ## Output
-   - `ralph-coder/output-v{N}.md` — change summary
-   - `ralph-coder/status.json` — structured status
+   - `coder/output-v{N}.md` — change summary
+   - `coder/status.json` — structured status
    ```
 4. **Define result codes** — what values can `result` take?
    ```markdown

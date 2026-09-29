@@ -115,7 +115,7 @@ Ask:
 
 Flag when:
 
-- Ralph reviewers read Malph scout artifacts
+- Reviewers in one agent family read another family's scout artifacts
 - VS Code or docs workflows leak each other's status/output paths
 
 ## 10. Duplicate or Stale Side Effects

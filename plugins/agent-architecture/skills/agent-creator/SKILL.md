@@ -14,12 +14,23 @@ You should also have these skills available — this skill references them but d
 | Skill | Used in | Purpose |
 |---|---|---|
 | `agent-as-function` | Phase 1–2 | Architecture patterns, subagent analysis, data flow |
-| `agent-subagent-wiring` | Phase 5 | Wiring checklist, role patterns, templates |
 | `skill-creator` | Phase 5e | Skill authoring patterns, evaluation loop |
 | `agent-as-function-audit` | Phase 6 | Validation checklist |
-| `agent-eval` | Phase 7 | Evaluation dimensions |
+| `agent-fractal-workflow-eval` | Phase 7 | Evaluation dimensions for multi-pass families |
 
-If any are missing, the corresponding phase still works — you'll just need to apply the patterns manually.
+All of these ship in the `agent-architecture` plugin except `skill-creator`, which is the official `skill-creator` plugin. If any are missing, the corresponding phase still works — you'll just need to apply the patterns manually.
+
+## Harness layout
+
+The files this skill creates depend on the harness the agent family runs in. Detect it from the target repo (or ask), then use its paths wherever this skill says `<agents-dir>`, `<skills-dir>` or `<harness-config>`:
+
+| Harness | `<agents-dir>` (one file per agent) | `<skills-dir>` | `<harness-config>` | Ask-the-user tool |
+|---|---|---|---|---|
+| **Claude Code** (default) | `.claude/agents/<name>.md` | `.claude/skills/<name>/SKILL.md` | `.claude/settings.json` (only if the family needs hooks or permissions) | `AskUserQuestion` |
+| **GitHub Copilot CLI** | `.github/agents/<name>.agent.md` | `.github/skills/<name>/SKILL.md` | none, or your runner's config | `ask_questions` |
+| **Custom runner** (profiles, templated prompts) | whatever the runner loads — often `profiles/<profile>/agents/<name>.agent.md` plus shared include partials | the runner's skills dir | the runner's profile/config file | the runner's equivalent |
+
+If the harness renders prompts from templates (Liquid, Handlebars, …), shared prompt fragments such as the artifact contract can live in include partials; otherwise inline them in each agent file.
 
 ## Inputs
 
@@ -33,10 +44,9 @@ The user provides:
 By the end of the workflow, these files exist:
 
 - `plans/<agent-name>/` — phase deliverables (requirements, analysis, architecture, skill plan, workflow)
-- `profiles/<profile>/agents/` — orchestrator `.agent.md` + subagent `.agent.md` files
-- `shared/agent-includes/<profile>/` — shared include partials for subagent prompts
-- `.github/skills/<skill-name>/` — new domain skills (if any)
-- `profiles/<profile>/profile.json` — updated profile configuration
+- `<agents-dir>` — the orchestrator file + one file per subagent
+- `<skills-dir>` — new domain and workflow skills (if any)
+- `<harness-config>` — updated harness configuration (if the harness has one)
 
 ## Workflow
 
@@ -49,15 +59,15 @@ By the end of the workflow, these files exist:
 | 2 | Architecture Design | `architecture.md` | `agent-as-function` refs: data-flow-patterns, refactoring-guide |
 | 3 | Skill Gap Analysis | `skill-plan.md` | `agent-as-function` refs: skill-discovery |
 | 4 | Workflow Decomposition | `workflow-design.md` | `agent-as-function` refs: workflow-decomposition |
-| 5 | Bootstrap Implementation | Agent + skill files | `agent-subagent-wiring`, `skill-creator` |
+| 5 | Bootstrap Implementation | Agent + skill files | `agent-as-function` refs: refactoring-guide, skill-integration; `skill-creator` |
 | 6 | Validation | Audit report | `agent-as-function-audit` |
-| 7 | Test Plan | Test cases (optional) | `agent-eval` |
+| 7 | Test Plan | Test cases (optional) | `agent-fractal-workflow-eval` |
 
 The plan directory is `plans/<agent-name>/`. Create it at Phase 0.
 
 ### Checkpoint protocol
 
-Every phase ends with `ask_questions`. Present the deliverable summary and ask explicitly:
+Every phase ends with the harness's ask-the-user tool (see Harness layout). Present the deliverable summary and ask explicitly:
 - "Does this look right?"
 - "Anything to add, remove, or change?"
 
@@ -138,7 +148,7 @@ Do not proceed until the user approves. If the user requests changes, revise the
 
 4. **Define the artifact directory structure.** Based on the approved data flow:
    ```
-   .ralph/tasks/{task-id}/artifacts/
+   .agent-work/tasks/{task-id}/artifacts/
    ├── <subagent-1>/
    │   ├── output.md
    │   └── status.json
@@ -149,8 +159,8 @@ Do not proceed until the user approves. If the user requests changes, revise the
    ```
 
 5. **Allocate models.** For each subagent and the orchestrator:
-   - Deep reasoning / coding / review → `claude-opus-4.6`
-   - Formatting / aggregation / mechanical → `claude-sonnet-4` or `claude-sonnet-4.5`
+   - Deep reasoning / coding / review → `opus`
+   - Formatting / aggregation / mechanical → `sonnet` or `sonnet`
    - Lightweight extraction / classification → cheaper model
 
 6. **Identify iteration loops.** Write → review → revise loops, retry-on-failure loops. Set explicit max iteration counts.
@@ -246,20 +256,19 @@ Do not proceed until the user approves. If the user requests changes, revise the
 
 **Goal:** Create all the actual files. Each sub-step has its own checkpoint.
 
-### 5a. Profile configuration
+### 5a. Harness configuration
 
-Create or update `profiles/<profile>/profile.json`:
-- Data source configuration
-- Match rules (JIRA project, issue types, comment trigger)
-- Stage pipeline with agent reference
-- MCP server declarations
+Skip if the harness has no config for agent families (plain Claude Code usually needs none). Otherwise create or update `<harness-config>`:
+- Trigger / match rules (issue tracker project, issue types, comment trigger)
+- Stage pipeline with the orchestrator as entry point
+- MCP server declarations and tool permissions
 - Variant definitions (if applicable)
 
-**Sub-checkpoint:** "Profile config looks like this. Correct?"
+**Sub-checkpoint:** "Harness config looks like this. Correct?"
 
 ### 5b. Orchestrator template
 
-Create `profiles/<profile>/agents/ralph.<name>.agent.md`:
+Create the orchestrator in `<agents-dir>`:
 - Frontmatter: agents list, model, description
 - Identity section — who this agent is
 - Prompt contract — what the dispatching system sends
@@ -270,15 +279,15 @@ Create `profiles/<profile>/agents/ralph.<name>.agent.md`:
 - Error handling — per-subagent failure paths
 - Workflow section — renders the workflow partial (or inline)
 
-Follow `agent-subagent-wiring/references/templates.md` for reusable prompt snippets.
+Follow `agent-as-function/references/refactoring-guide.md` for the orchestrator and subagent prompt skeletons.
 
 **Sub-checkpoint:** "Orchestrator template created. Review the routing table and dispatch logic."
 
 ### 5c. Subagent templates
 
 For each subagent in the approved roster, create:
-- `profiles/<profile>/agents/ralph.<subagent-name>.agent.md` — stub with frontmatter (model, description, `{% render '<include-path>' %}`)
-- Shared include partial at `shared/agent-includes/<profile>/<subagent-name>.md` (or direct content in the stub if the subagent is simple)
+- An agent file in `<agents-dir>` with frontmatter (name, description, model, tools)
+- If the harness renders templates: optionally a thin stub that includes a shared partial with the body; otherwise the body goes directly in the agent file
 
 Each subagent template includes:
 - Role (one line)
@@ -287,14 +296,14 @@ Each subagent template includes:
 - Result codes (with meanings)
 - **Work Process** — todolist-driven structured passes with todo-dependencies (for worker agents that do substantive work). Each pass has one concern: read inputs → domain-specific passes → self-audit → write output. See the architecture template for the standard pass table format. Pure routers skip this section.
 - Instructions (step-by-step)
-- Artifact contract — `{% render 'agent-as-function-contract' %}` (or inline equivalent)
+- Artifact contract — inlined from `agent-as-function/references/artifact-contract.md` (or a shared include partial, if the harness renders templates)
 
 **Sub-checkpoint per subagent:** "Created `<subagent>`. Review its inputs, outputs, and result codes."
 
 ### 5d. Workflow skills (if using phase decomposition)
 
 For each phase from the workflow design:
-- Create the phase skill at `.github/skills/workflow-<agent>-<phase>/SKILL.md`
+- Create the phase skill at `<skills-dir>/workflow-<agent>-<phase>/SKILL.md`
 - Include "Before you begin" (read state.md), instructions, "Before moving to Phase N+1" (update state.md)
 - Wire domain skill references at decision points
 
@@ -319,9 +328,9 @@ For each "create" skill from the skill gap analysis:
 
 ### Steps
 
-1. **Template rendering.** If the profile uses Liquid templates, verify they render without errors. Run the template integration tests if available.
+1. **Template rendering.** If the harness renders prompts from templates, verify they render without errors. Run the template integration tests if available.
 
-2. **JSON validation.** Verify `profile.json` parses correctly.
+2. **Config validation.** Verify `<harness-config>` (if any) parses and references agent files that exist. For a Claude Code plugin, run `claude plugin validate`.
 
 3. **Agent-as-function audit.** Follow `agent-as-function-audit` (or its checklist reference):
    - Orchestrator purity — no `output.md` reads, no data relaying
@@ -331,7 +340,7 @@ For each "create" skill from the skill gap analysis:
    - Skill mounts — every referenced skill exists
 
 4. **Dangling reference check:**
-   - Every agent in the orchestrator's roster has a corresponding `.agent.md` file
+   - Every agent in the orchestrator's roster has a corresponding file in `<agents-dir>`
    - Every skill referenced in workflow skills or agent templates exists
    - Every result code in the routing table matches a subagent's declared result codes
    - Every artifact path referenced as input by a subagent is produced by another subagent
@@ -356,7 +365,7 @@ Use `references/validation-checklist.md` for the complete checklist.
 
 2. **Identify edge cases.** Revision flow, blocked subagent, build failure, reviewer disagreement, scope ambiguity.
 
-3. **Map evaluation dimensions.** From `agent-eval`, identify which dimensions (D1-D9) are most relevant for this agent type.
+3. **Map evaluation dimensions.** From the `agent-fractal-workflow-eval` checklist, identify which dimensions are most relevant for this agent type.
 
 4. **Optionally set up the eval loop.** Use `skill-creator` patterns to create `evals.json` for domain skills and benchmark assertions.
 

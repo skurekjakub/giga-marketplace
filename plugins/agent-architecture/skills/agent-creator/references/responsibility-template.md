@@ -32,7 +32,7 @@ Use this template for the Phase 1 deliverable. Follow the procedure in `agent-as
 
 ### {subagent-1-name}
 - **Role:** {one-line description}
-- **Model:** {claude-opus-4.6 / claude-sonnet-4 / other} — {why this model}
+- **Model:** {opus / sonnet / other} — {why this model}
 - **Reads:** {upstream artifacts, MCP tools, repo files}
 - **Writes:** `{subagent-1-name}/output.md` — {description}
 - **Result codes:** `{code1}` ({meaning}), `{code2}` ({meaning})
@@ -63,8 +63,8 @@ The orchestrator handles these itself (no subagent delegation):
 
 | Pattern | Source | Applicability |
 |---|---|---|
-| {e.g., Scribe handoff pattern} | {ralph-docs family} | {Handoff composition is identical} |
-| {e.g., Multi-reviewer gate} | {ralph-docs family} | {Review gate with 3 reviewers + revision loop} |
+| {e.g., Scribe handoff pattern} | {docs agent family} | {Handoff composition is identical} |
+| {e.g., Multi-reviewer gate} | {docs agent family} | {Review gate with 3 reviewers + revision loop} |
 
 ## Unresolved Questions
 

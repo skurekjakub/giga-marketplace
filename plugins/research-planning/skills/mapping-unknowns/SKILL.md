@@ -1,13 +1,14 @@
 ---
 name: mapping-unknowns
-description: Use before superpowers:brainstorming, a plan, or any long-horizon task whenever the person's own knowledge of the territory is the bottleneck rather than the design — they say they are new to this part of the codebase or to the domain, "I know nothing about X", "I don't know what good looks like here", "what am I not considering", "help me prompt you better", "teach me X so I can brief you", or literally ask for a "blind spot pass" or their "unknown unknowns"; also at the pre-brainstorm step of `feature-development` (after research) and `codebase-refactoring` (after inventory), and whenever a request is long on what to build and silent on what the person already knows. Standalone it is offered, never forced: one sentence from the person skips it. Not for a bounded bugfix, and not a substitute for brainstorming, which starts where this ends.
+description: >-
+  Use before superpowers:brainstorming, a plan, or any long-horizon task whenever the person's own knowledge of the territory is the bottleneck rather than the design — they say they are new to this part of the codebase or to the domain, "I know nothing about X", "I don't know what good looks like here", "what am I not considering", "help me prompt you better", "teach me X so I can brief you", or literally ask for a "blind spot pass" or their "unknown unknowns"; also at the pre-brainstorm step of a feature or refactoring workflow (after research or inventory), and whenever a request is long on what to build and silent on what the person already knows. Standalone it is offered, never forced: one sentence from the person skips it. Not for a bounded bugfix, and not a substitute for brainstorming, which starts where this ends.
 ---
 
 # Mapping unknowns
 
 The prompt is a map. The codebase and its constraints are the territory. The
 gap is the person's unknowns, and every unknown the agent meets later becomes a
-guess about what they wanted. Brainstorming and the repo's flows assume the
+guess about what they wanted. Brainstorming and the project's workflows assume the
 person can answer design questions. This pass runs first and maps what the
 person knows, knows they lack, would recognise on sight, and has never
 considered, so the questions that follow are ones they can answer.
@@ -18,8 +19,10 @@ failure this skill exists to prevent.
 
 ## The gate is soft
 
-- At a trigger, load this skill and run the pass. Inside `feature-development`
-  and `codebase-refactoring` it is the step before brainstorming or the spec.
+- At a trigger, load this skill and run the pass. Inside a feature or
+  refactoring workflow (such as `feature-development` or `codebase-refactoring`
+  from the `setup-ai` dev-workflow pack) it is the step before brainstorming or
+  the spec.
 - One sentence from the person ends it: "skip it", "go", "I know this area".
   Inside a flow, record `Unknowns pass: skipped by the person` as one line in
   the journal and continue. Never argue for the pass and never re-offer it
@@ -32,8 +35,8 @@ The output is these parts, in this order.
 ### 1. Light territory read
 
 Read only enough to know what the person could be missing: the area's index
-(the feature-constitution roster, the `docs/conventions/` listing, the area's
-own README), the entry-point files the request names, and the area's recent
+(the project's feature journal roster and conventions docs if it has them, the
+area's own README), the entry-point files the request names, and the area's recent
 `git log`. Stop as soon as you can name four things:
 
 - the nearest precedent, the thing already built that has this shape
@@ -92,30 +95,28 @@ they can paste them into their next prompt or into the spec.
 
 ### 5. Where it lands
 
-- Inside a flow: `unknowns.md` in the work's journal folder, the constitution
-  folder for a feature or `.ai/refactoring/NNN-<slug>/` for a refactor, holding
-  the final map and the brief. The spec's open-questions section starts from
+- Inside a flow: `unknowns.md` in the work's journal folder (the feature or
+  refactoring folder the workflow keeps), holding the final map and the brief. The spec's open-questions section starts from
   it.
 - Standalone: chat only, unless the person asks for a file.
 
 ## Example
 
-Request: "Add a `deprecated` frontmatter field that renders a warning banner
-on docs pages. I know nothing about frontmatter validation or the MDX
-rendering pipeline here."
+Request: "Add soft delete to projects so a deleted project can be restored
+for 30 days. I know nothing about how the data layer or the API works here."
 
 Draft map, one entry per row for brevity:
 
 | Quadrant | Entry |
 |---|---|
-| Known knowns | Field named `deprecated`; a banner on docs pages (their words). |
-| Known unknowns | How validation works (their words). Which eras carry the field, and bare boolean or message plus replacement link (`lib/corpus/frontmatter/schema/frontmatter.ts` is a strict object per era). |
-| Unknown knowns | What the banner should look like: an in-body warning admonition or top-of-page chrome (`components/mdx/Admonition.tsx`, `components/layout/page/VersionBanner.tsx`). |
-| Unknown unknowns | Page content ships to four surfaces, not one (the `mdx-emission-targets` constitution). "Deprecated" already names the collection version banner. House rule bans version notes on pages. |
+| Known knowns | Projects can be deleted and restored within 30 days (their words). |
+| Known unknowns | How the data layer works (their words). Whether restore brings back child records, and who may restore (`src/db/schema/projects.ts` has cascading foreign keys). |
+| Unknown knowns | What "deleted" looks like to users: hidden everywhere, or listed in a trash view (`src/ui/projects/ProjectList.tsx`). |
+| Unknown unknowns | Projects are read from three places, not one: the API, the nightly export job and the search index (`src/jobs/export.ts`, `src/search/indexer.ts`). "Archived" already exists as a different state. A house rule forbids hard deletes without an audit entry. |
 
-First question: "Did you know a page's content is emitted to four surfaces,
-the website, the `.md` projection, the AIRA corpus and the Algolia index?
-(a) yes (b) no (c) I knew about `.md` only."
+First question: "Did you know projects are also read by the nightly export
+job and the search indexer, not just the API? (a) yes (b) no (c) I knew about
+search only."
 
 The map took five files to draft. Without this skill, four baseline runs on
 the same request each read the subsystem to completion, answered with a long
@@ -135,6 +136,6 @@ briefing of codebase facts and design questions, and asked the person nothing.
 ## Reference
 
 `references/finding-your-unknowns.md` holds the source article's full pattern
-catalog, including the post-implementation patterns this repo already
-institutionalised: the explainer with its Q&A section is the pitch plus the
-quiz, and the journal folder is the implementation notes.
+catalog, including the post-implementation patterns (the pitch, the quiz and
+the implementation notes) that a workflow's explainer and journal folder can
+institutionalise.

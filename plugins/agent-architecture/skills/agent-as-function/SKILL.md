@@ -1,11 +1,11 @@
 ---
 name: agent-as-function
-description: "Design and implement multi-agent workflows using the subagent-as-function pattern with filesystem artifact handoff, and decompose monolithic agent prompts into per-phase skills with domain knowledge. Use this skill whenever creating a new multi-agent orchestrator, converting an existing agent to the artifact handoff pattern, adding subagents to an orchestrator. Also triggers on: 'create an orchestrator', 'add a subagent', 'the orchestrator context is too big', 'agent artifact contract', 'status.json', 'manifest.json', 'how should agents pass data', 'pure router orchestrator', 'decompose this agent', 'add domain knowledge', 'phase skills', 'workflow phases', 'skill gaps', or any request involving multi-agent coordination or agent prompt refactoring in the Ralph Orchestrator."
+description: "Design and implement multi-agent workflows using the subagent-as-function pattern with filesystem artifact handoff, and decompose monolithic agent prompts into per-phase skills with domain knowledge. Use this skill whenever creating a new multi-agent orchestrator, converting an existing agent to the artifact handoff pattern, adding subagents to an orchestrator. Also triggers on: 'create an orchestrator', 'add a subagent', 'the orchestrator context is too big', 'agent artifact contract', 'status.json', 'manifest.json', 'how should agents pass data', 'pure router orchestrator', 'decompose this agent', 'add domain knowledge', 'phase skills', 'workflow phases', 'skill gaps', or any request involving multi-agent coordination or agent prompt refactoring."
 ---
 
 # Agent Architecture: Multi-Agent Workflows
 
-This skill covers the two complementary patterns that make up well-structured multi-agent systems in the Ralph Orchestrator:
+This skill covers the two complementary patterns that make up well-structured multi-agent systems:
 
 1. **Prompt decomposition** — break monolithic agent prompts into per-phase skills loaded just-in-time, with a scratchpad contract for state continuity
 2. **Subagent-as-function** — orchestrators dispatch subagents as pure functions; all substantive data flows through filesystem artifacts, not conversation context
@@ -63,7 +63,7 @@ Each phase skill ends with a transition section that updates `state.md` with the
 - Which of those phase functions should become dedicated subagents?
 - Which declared subagents are only helpers versus true phase owners?
 - Is a scout, analyst, coder/writer, reviewer, or scribe/archiver function still missing?
-- Have you confirmed the initial missing-function audit with the user via `ask_questions` before editing files?
+- Have you confirmed the initial missing-function audit with the user via the harness's ask-the-user tool (`AskUserQuestion` / `ask_questions`) before editing files?
 
 **Quick reference:**
 

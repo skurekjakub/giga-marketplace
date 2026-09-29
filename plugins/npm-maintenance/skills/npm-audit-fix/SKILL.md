@@ -1,6 +1,6 @@
 ---
 name: npm-audit-fix
-description: Use when npm dependencies in this repo need moving — npm audit reports vulnerabilities ("npm audit", "audit fix", "security advisories", "CVE in deps", a pipeline/security-team report), or the user wants a routine refresh ("bump deps", "update dependencies", "dependabot-style", "latest minor versions", "npm update", "what's outdated"). Also use when an install fails because a package version is too new (min-release-age / release-age cooldown error).
+description: Use when a project's npm dependencies need moving — npm audit reports vulnerabilities ("npm audit", "audit fix", "security advisories", "CVE in deps", a pipeline/security-team report), or the user wants a routine refresh ("bump deps", "update dependencies", "dependabot-style", "latest minor versions", "npm update", "what's outdated"). Also use when an install fails because a package version is too new (min-release-age / release-age cooldown error).
 ---
 
 # npm dependency bumps
@@ -21,22 +21,39 @@ verified PR. Nothing either path cannot do cleanly is forced — it is
 | Advisories gone, scanner report, CVE list | Audit fix |
 | Everything current, "like dependabot", routine bump | Dependency refresh (then run audit fix on top — same branch) |
 
+## Before you start
+
+Read these from the repo once and use them in every step below:
+
+- **Base branch** — the branch dependency PRs target. Default: the remote's
+  default branch (`git symbolic-ref --short refs/remotes/origin/HEAD`). Ask if
+  the repo clearly integrates elsewhere (a `develop` / `next` branch).
+- **Verify command** — the repo's own quality gate from `package.json`
+  scripts: `verify` or `check` if present, else `typecheck` + `lint` + `test` +
+  `build`, whichever exist.
+- **Runtime Node major** — the `FROM node:<major>` in a `Dockerfile`, else
+  `engines.node`, else `.nvmrc` / `.node-version`.
+- **Release-age cooldown** — whether `.npmrc` sets `min-release-age` (and to
+  how many days). The cooldown rules below apply only when it does.
+
 ## Shared steps
 
-1. **Branch** — `git fetch origin membership-next && git checkout -b chore/<path-name> origin/membership-next` (or from the current HEAD when asked).
+1. **Branch** — `git fetch origin <base> && git checkout -b chore/<path-name> origin/<base>` (or from the current HEAD when asked).
 2. **Clean install** — `npm ci`, then `npm audit` and `npm outdated` to capture the baseline.
 3. **Move** — the path-specific command below.
-4. **Sync package.json** — `node .claude/skills/npm-audit-fix/sync-package-json.mjs`
-   rewrites every direct range to `^<installed>` (repo policy: the two stay
-   in sync). Then `npm install --package-lock-only` to refresh lock metadata.
-5. **Verify** — `npm run verify`. If a renderer/content dep moved (shiki,
-   @mdx-js/*, remark-*, micromark-*, tailwind), also `npm run content:validate`.
-   Minor bumps can break typecheck (a dep starts shipping a global type the
-   repo also declares locally); fix that fallout on this branch — the bump
-   caused it.
+4. **Sync package.json** — `node ${CLAUDE_SKILL_DIR}/sync-package-json.mjs`
+   (run from the repo root) rewrites every direct range to `^<installed>` so
+   the ranges and the lockfile agree. Skip this step if the repo deliberately
+   keeps looser ranges than it installs. Then
+   `npm install --package-lock-only` to refresh lock metadata.
+5. **Verify** — the verify command. If a dependency that shapes build output
+   moved (bundler, compiler, CSS or markdown toolchain), also run the repo's
+   build or content validation. Minor bumps can break typecheck (a dep starts
+   shipping a global type the repo also declares locally); fix that fallout on
+   this branch — the bump caused it.
 6. **Ship** — commit (lock + package.json + fallout fixes), push, PR targeting
-   `membership-next`. PR bullets name the bumped versions, list what was
-   left behind and why, and end with a `## Verification` bullet.
+   the base branch. PR bullets name the bumped versions, list what was left
+   behind and why, and end with a `## Verification` bullet.
 
 ## Path: audit fix
 
@@ -45,9 +62,9 @@ fix inside the cooldown go in the PR's "remaining" list.
 
 ## Path: dependency refresh
 
-`npm update`. Plain. It respects the caret ranges in `package.json` and the
+`npm update`. Plain. It respects the caret ranges in `package.json` and any
 `.npmrc` cooldown, so it cannot cross a major and cannot pick a version
-younger than 3 days. After it, run `npm audit fix` too — transitive
+younger than the cooldown. After it, run `npm audit fix` too — transitive
 advisories are cheap to clear on the same branch.
 
 Majors that `npm outdated` lists under **Latest** but not **Wanted** stay
@@ -68,19 +85,21 @@ blocks, and swapping dependencies are separate, human-decided tasks.
 past its major. Dependabot's major PRs are separate PRs for a reason.
 
 **`@types/node` tracks the runtime, not `latest`.** Its major is the Node
-major it describes; the runtime major is the `Dockerfile` base image
-(`node:24-…`) and `engines.node`. Types newer than the runtime make `tsc`
+major it describes; the runtime major is the one found under "Before you
+start" (for example a `node:24-…` Docker base image). Types newer than the runtime make `tsc`
 accept APIs that throw in the container. On a refresh, leave it alone; if
 `npm outdated` shows it above the runtime major, the fix is
 `npm install @types/node@<runtime major>` — a downgrade — in its own PR.
 Same rule for any `@types/*` that shadows a runtime version.
 
-**The `.npmrc` `min-release-age=3` cooldown is never bypassed.** No
+**A `.npmrc` `min-release-age` cooldown is never bypassed.** No
 `npm config set`, no `--min-release-age 0`, no `min-release-age-exclude`,
 no `.npmrc` edit, no env override. The cooldown is the supply-chain defence
 exactly when a "fresh patch" exists — a just-published version is the attack
-window. If the version is younger than 3 days, it stays in the PR's
+window. If the version is younger than the cooldown, it stays in the PR's
 "remaining" list with a note that it self-resolves once the window passes.
+(If the repo has no cooldown, don't add one in this PR — suggest it as a
+finding.)
 
 ## Rationalizations
 
@@ -93,13 +112,13 @@ window. If the version is younger than 3 days, it stays in the PR's
 | "I'll add an `overrides` entry, it's not --force" | Same unreviewed-major-bump risk with different syntax. Separate task, human decision. |
 | "Dependabot would take the major too" | Dependabot opens one PR per major with its own CI run. A bulk refresh is the in-range PR only. |
 | "It's only a types package / dev dep, the major is safe" | `@types/node`, `typescript`, `eslint` majors change what typechecks and lints. Separate PR. |
-| "`@types/node` 26 typechecks green, ship it" | Green means the types are a superset, not that Node 24 runs the code. Match the Dockerfile. |
+| "`@types/node` 26 typechecks green, ship it" | Green means the types are a superset, not that the Node 24 runtime runs the code. Match the runtime major. |
 
 ## Red flags — stop
 
 - Typing `--force`, `overrides`, `@latest`, or any `min-release-age` / `min-release-age-exclude` mutation.
 - Editing `.npmrc`.
 - Installing a specific `pkg@version` to "finish off" an advisory or an outdated row.
-- A range in `package.json` whose major differs from the one on `origin/membership-next`.
-- `@types/node` above the `Dockerfile` Node major.
+- A range in `package.json` whose major differs from the one on `origin/<base>`.
+- `@types/node` above the runtime Node major.
 - A PR claiming zero advisories when `npm audit` still lists some.

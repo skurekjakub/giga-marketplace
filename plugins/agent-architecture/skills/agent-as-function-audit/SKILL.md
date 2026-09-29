@@ -18,8 +18,8 @@ This skill is for questions like:
 This skill complements, but does not replace:
 
 - `agent-as-function` for designing or refactoring the architecture
-- `agent-subagent-wiring` for adding a new subagent cleanly
-- `agent-eval` for grading a completed execution transcript or task run
+- `agent-as-function` for adding a new subagent cleanly
+- `agent-fractal-workflow-eval` for auditing a multi-pass fractal family
 
 ## Read These References
 

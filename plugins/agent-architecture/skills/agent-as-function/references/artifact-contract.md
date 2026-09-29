@@ -16,7 +16,7 @@ Each task gets a shared artifact directory. Every subagent writes to its own sub
 ```
 
 The artifact root varies by execution context:
-- **Container agents**: `.ralph/tasks/{task-id}/artifacts/`
+- **Container agents**: `.agent-work/tasks/{task-id}/artifacts/`
 - **Local/post-hook agents**: `{hook.outputDir}/artifacts/`
 
 ## status.json
@@ -25,13 +25,13 @@ Every subagent writes this before exiting. This is the **only** file the orchest
 
 ```json
 {
-  "agent": "ralph-reviewer",
-  "task_id": "DOC-3167",
+  "agent": "reviewer",
+  "task_id": "TASK-123",
   "status": "completed",
   "result": "fail",
   "summary": "2 pattern violations, 1 missing test. See output-v1.md.",
-  "artifacts": ["ralph-reviewer/output-v1.md"],
-  "next_hint": "ralph-coder",
+  "artifacts": ["reviewer/output-v1.md"],
+  "next_hint": "coder",
   "iteration": 1
 }
 ```
@@ -57,8 +57,8 @@ Append-only audit log. Each subagent appends an entry when writing artifacts. Th
 [
   {
     "timestamp": "2026-03-06T14:22:00Z",
-    "agent": "ralph-analyst",
-    "artifacts": ["ralph-analyst/output.md"],
+    "agent": "analyst",
+    "artifacts": ["analyst/output.md"],
     "status": "completed",
     "result": "analyzed",
     "iteration": 1
@@ -73,12 +73,12 @@ Subagents can also use `manifest.json` to discover what ran before them — for 
 When a subagent runs multiple times (coder → reviewer → coder), each iteration produces a versioned artifact:
 
 ```
-ralph-coder/
+coder/
 ├── output-v1.md       # first attempt
 ├── output-v2.md       # after reviewer feedback
 └── status.json        # always reflects latest iteration
 
-ralph-reviewer/
+reviewer/
 ├── output-v1.md       # review of coder's v1
 └── status.json        # always reflects latest iteration
 ```
@@ -86,7 +86,7 @@ ralph-reviewer/
 **Rules:**
 - `status.json` is **overwritten** each iteration (current state only)
 - `manifest.json` **preserves** the full history (append-only)
-- Downstream subagents read the specific versioned file they need (coder v2 reads `ralph-reviewer/output-v1.md`)
+- Downstream subagents read the specific versioned file they need (coder v2 reads `reviewer/output-v1.md`)
 - Orchestrator enforces max iteration limits to prevent infinite loops
 - Version numbers match the `iteration` field in `status.json`
 
@@ -97,13 +97,13 @@ ralph-reviewer/
 Successful completion:
 ```json
 {
-  "agent": "ralph-analyst",
-  "task_id": "DOC-3167",
+  "agent": "analyst",
+  "task_id": "TASK-123",
   "status": "completed",
   "result": "analyzed",
   "summary": "5 sections identified, 2 require restructuring. See output.md.",
-  "artifacts": ["ralph-analyst/output.md"],
-  "next_hint": "ralph-coder",
+  "artifacts": ["analyst/output.md"],
+  "next_hint": "coder",
   "iteration": 1
 }
 ```
@@ -111,12 +111,12 @@ Successful completion:
 Failure:
 ```json
 {
-  "agent": "ralph-coder",
-  "task_id": "DOC-3167",
+  "agent": "coder",
+  "task_id": "TASK-123",
   "status": "failed",
   "result": "build-broken",
   "summary": "TypeScript compilation failed after changes. 3 type errors in api-client.ts.",
-  "artifacts": ["ralph-coder/output-v1.md"],
+  "artifacts": ["coder/output-v1.md"],
   "next_hint": null,
   "iteration": 1
 }
@@ -125,12 +125,12 @@ Failure:
 Blocked (needs human intervention):
 ```json
 {
-  "agent": "ralph-reviewer",
-  "task_id": "DOC-3167",
+  "agent": "reviewer",
+  "task_id": "TASK-123",
   "status": "blocked",
   "result": "ambiguous-requirements",
   "summary": "AC #3 contradicts AC #5. Cannot proceed without clarification.",
-  "artifacts": ["ralph-reviewer/output-v1.md"],
+  "artifacts": ["reviewer/output-v1.md"],
   "next_hint": null,
   "iteration": 1
 }

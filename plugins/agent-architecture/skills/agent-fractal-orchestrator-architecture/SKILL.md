@@ -26,7 +26,7 @@ This skill captures the generalized architecture. It works for any domain — mi
 
 - **agent-as-function**: Covers the foundational pattern (status.json, manifest.json, artifact handoff). This skill builds ON TOP of that foundation with the full fractal hierarchy, multi-pass pipeline, convergence loops, and autonomous dispatch.
 - **agent-creator**: Human-in-the-loop family creation. This skill produces families that run WITHOUT human-in-the-loop.
-- **agent-subagent-wiring**: Wires one subagent at a time. This skill designs the entire family architecture before any wiring.
+- **agent-as-function**: Wires and refactors one orchestrator/subagent family at a time. This skill designs the entire family architecture before any wiring.
 
 ## Architecture Overview
 

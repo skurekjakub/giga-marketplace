@@ -81,7 +81,7 @@ No amount of planning eliminates unknown unknowns — the agent may hit an edge 
 
 > "Keep an implementation-notes.md file. If you hit an edge case that forces you to deviate from the plan, pick the conservative option, log it under 'Deviations', and keep going."
 
-(In this repo, the `.ai/feature-constitution/<slug>/` journal serves this role for feature work.)
+(If the project keeps a per-feature journal folder — for example the one the `setup-ai` dev-workflow pack scaffolds — that journal serves this role.)
 
 ### Post-implementation
 

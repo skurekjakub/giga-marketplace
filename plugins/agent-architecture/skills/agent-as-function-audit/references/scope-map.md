@@ -6,12 +6,12 @@ Audit the workflow as a system, not as isolated files.
 
 | Surface | What to read | Why |
 |---|---|---|
-| Orchestrator prompt | `profiles/<profile>/agents/<orchestrator>.agent.md` | Declared ownership, routing rules, hard constraints, forbidden work |
+| Orchestrator prompt | the orchestrator's agent file (`.claude/agents/<orchestrator>.md`, `.github/agents/<orchestrator>.agent.md`, or your runner's path) | Declared ownership, routing rules, hard constraints, forbidden work |
 | Subagent prompts | Every subagent named in the orchestrator frontmatter and routing tables | Real input/output contracts and ownership boundaries |
 | Workflow router skill | The main workflow skill/router | Phase table and routing expectations |
 | Phase references | Standard and revision phase reference files | Where stale ownership rules usually survive |
 | Shared artifact contract | Shared contract/include file | Canonical file naming, `status.json`, manifest, iteration rules |
-| Profile config | `profiles/<profile>/profile.json` | Mounted skills and actual agent entry points |
+| Harness config | the runner's profile/config file, or `.claude/settings.json` | Mounted skills and actual agent entry points |
 
 ## Inspect When Relevant
 

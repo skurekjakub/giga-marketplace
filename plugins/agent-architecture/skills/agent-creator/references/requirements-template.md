@@ -21,7 +21,7 @@ Use this template for the Phase 0 deliverable. Fill in each section based on rep
 ## Trigger
 
 - **Mechanism:** {JIRA comment, manual invocation, CI event, scheduled}
-- **Trigger string:** {e.g., `@RalphAgent`, `@RalphDocs`}
+- **Trigger string:** {e.g., `@DevAgent`, `@DocsAgent`}
 - **Trigger parameters:** {e.g., `(verbose, skip_review)` — list expected parameters and what they do}
 - **Source:** {JIRA project key, issue types, JQL filter}
 

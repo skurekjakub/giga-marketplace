@@ -24,7 +24,6 @@ If the system is a flat orchestrator → subagent setup without passes or re-ent
 | Skill | Focus | Overlap |
 |---|---|---|
 | `agent-as-function-audit` | Architecture compliance: routing purity, artifact contracts, skill mounts, result-block parsing | Complementary — run both for full coverage |
-| `agent-eval` | Grading a completed execution transcript | Different surface — this skill audits prompts, not traces |
 | `agent-creator` | Building new agent families | Upstream — use this skill to validate what agent-creator produces |
 
 ## Read These References

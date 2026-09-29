@@ -18,7 +18,7 @@ The orchestrator doesn't appear in this table — it dispatches agents and reads
 
 The orchestrator routes based on `(agent, result)` pairs. Define the full table before implementing.
 
-### Example: Multi-Model Review Panel (malph)
+### Example: Multi-Model Review Panel
 
 ```markdown
 | Agent completed | result | Action |
@@ -30,7 +30,7 @@ The orchestrator routes based on `(agent, result)` pairs. Define the full table 
 | scribe | delivered | archive and exit |
 ```
 
-### Example: Linear Pipeline (ralph-docs)
+### Example: Linear Pipeline (docs pipeline)
 
 ```markdown
 | Agent completed | result | Action |
@@ -84,7 +84,7 @@ Post-hook agents (e.g., agent-improver, run-analyzer) follow the same contract:
 - Write `status.json` and append to `manifest.json`
 - The orchestrator (or a hook runner) reads only `status.json`
 
-Post-hooks typically run after the main pipeline completes. Their artifact root is `{hook.outputDir}/artifacts/` rather than `.ralph/tasks/{task-id}/artifacts/`.
+Post-hooks typically run after the main pipeline completes. Their artifact root is `{hook.outputDir}/artifacts/` rather than `.agent-work/tasks/{task-id}/artifacts/`.
 
 ## Anti-Patterns
 
