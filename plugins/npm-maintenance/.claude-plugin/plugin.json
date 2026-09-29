@@ -1,0 +1,15 @@
+{
+  "name": "npm-maintenance",
+  "version": "0.1.0",
+  "description": "Move npm dependencies safely — fix npm audit advisories, routine minor/patch refreshes, and release-age cooldown install failures.",
+  "author": {
+    "name": "skurekj",
+    "email": "skurekjakub@gmail.com"
+  },
+  "keywords": [
+    "npm",
+    "dependencies",
+    "audit",
+    "security"
+  ]
+}

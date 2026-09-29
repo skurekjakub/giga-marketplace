@@ -1,9 +1,0 @@
-{
-  "name": "tech-writing",
-  "version": "0.1.0",
-  "description": "Scaffolds customizable tech-writing skills into your project — release notes, hotfix notes, docs-vs-source validation, and draw.io diagram authoring — filled in with your product's specifics.",
-  "author": {
-    "name": "skurekj",
-    "email": "skurekjakub@gmail.com"
-  }
-}

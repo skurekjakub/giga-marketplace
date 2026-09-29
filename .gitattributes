@@ -1,0 +1,8 @@
+# LF everywhere: hook scripts run under bash (Git Bash on Windows), which
+# chokes on CRLF line endings.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.svg text eol=lf

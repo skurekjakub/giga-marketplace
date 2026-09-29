@@ -1,9 +1,0 @@
-{
-  "name": "harnesses",
-  "version": "0.1.0",
-  "description": "Skills for working with specific agent harnesses — Copilot CLI debug log analysis, extension development, and patching.",
-  "author": {
-    "name": "skurekj",
-    "email": "skurekjakub@gmail.com"
-  }
-}

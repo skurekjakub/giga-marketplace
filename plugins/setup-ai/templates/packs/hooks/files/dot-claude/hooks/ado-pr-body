@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# PreToolUse hook matching the Azure DevOps pull-request tools. Carries
+# {{AI_DIR}}/resources/pr-guidelines.md into context on every call, and exits 2 (Claude
+# Code's "deny" signal for PreToolUse) when a body exceeds the ADO API's limit.
+#
+# Format is the guidelines file's job, not this hook's. The only enforced rule
+# is the character cap, because that one is the API rejecting the request rather
+# than a matter of taste.
+
+set -euo pipefail
+
+input=$(cat)
+tool=$(echo "$input" | jq -r '.tool_name // ""' 2>/dev/null || echo "")
+
+case "$tool" in
+*repo_create_pull_request | *repo_update_pull_request) ;;
+*) exit 0 ;;
+esac
+
+body=$(echo "$input" | jq -r '.tool_input.description // ""' 2>/dev/null || echo "")
+
+MAX_CHARS=4000
+GUIDELINES="${CLAUDE_PROJECT_DIR:-.}/{{AI_DIR}}/resources/pr-guidelines.md"
+
+rules() {
+    if [ -r "$GUIDELINES" ]; then
+        cat "$GUIDELINES"
+        return
+    fi
+    cat <<EOF
+Azure DevOps PR format:
+- Title: \`<ISSUE-KEY> - <title>\` when a tracker issue is associated; otherwise any plain title.
+- Bullets only; one sentence per bullet, one bullet per change.
+- ${MAX_CHARS} characters is the hard block (the ADO API's own limit).
+- Headings (\`## \`) only when there are two or more distinct concerns.
+- One \`## Verification\` bullet naming the commands that ran and their result.
+- Findings this PR does not fix go in a work item, not the body.
+EOF
+}
+
+chars=$(printf '%s' "$body" | wc -m | tr -d '[:space:]')
+if [ "$chars" -gt "$MAX_CHARS" ]; then
+    echo "blocked by project hook: description is ${chars} characters; the hard block is ${MAX_CHARS}" >&2
+    rules >&2
+    exit 2
+fi
+
+jq -n --arg ctx "$(rules)" \
+    '{hookSpecificOutput: {hookEventName: "PreToolUse", additionalContext: $ctx}}'
+exit 0
