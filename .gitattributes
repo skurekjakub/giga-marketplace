@@ -1,5 +1,5 @@
-# LF everywhere: hook scripts run under bash, and run-hook.cmd is a cmd/bash
-# polyglot that bash can only parse with LF endings.
+# LF everywhere: hook scripts run under bash (Git Bash on Windows), which
+# chokes on CRLF line endings.
 * text=auto eol=lf
 
 *.png binary

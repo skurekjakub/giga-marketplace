@@ -68,8 +68,8 @@ enough to skim, complete enough that the file map below makes sense.
 | Path                        | Role        |
 | --------------------------- | ----------- |
 | `lib/foo/bar.ts`            | Core logic  |
-| `app/foo/page.tsx`          | Route entry |
-| `__tests__/unit/lib/<layer>/foo/bar.test.ts` | Unit tests  |
+| `app/foo/page.tsx`          | Entry point |
+| `tests/foo/bar.test.ts`     | Unit tests  |
 
 ## Consumer pattern
 
@@ -87,14 +87,7 @@ npm run test -- foo
 \`\`\`
 ```
 
-Existing constitutions worth skimming as concrete examples before drafting a
-new one:
-
-- `.ai/feature-constitution/authoring/frontmatter-validation/` — README
-  only, no journal kept.
-- `.ai/feature-constitution/discovery/sitemap-md/` — larger README with
-  multi-track design baked into current-state prose.
-- `.ai/feature-constitution/site-chrome/back-to-top/` — small feature, tight
-  README.
-- `.ai/feature-constitution/site-chrome/dev-model-switching/` — in-flight:
-  `spec.md` + `plan.md`, README pending until the finish phase.
+Before drafting a new README, skim two or three existing constitutions from
+the roster in `{{AI_DIR}}/feature-constitution/README.md` as concrete examples
+— one small, one large — and match their shape. The first constitution in a
+repo sets the shape the rest copy, so write it to this contract exactly.

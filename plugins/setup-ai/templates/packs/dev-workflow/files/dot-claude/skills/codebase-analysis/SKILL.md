@@ -1,6 +1,7 @@
 ---
 name: codebase-analysis
-description: Point it at a part of kentico-docs-next — a directory, a module, a route, a subsystem, or a theme such as "performance", "caching", "payload size", "build time" — and it produces one `.ai/followups/<domain>/<slug>.md` per finding, each with a verified problem statement, a measured cost, resolution options with a recommendation, and a solution section an implementer can pick up without re-research. It never edits code. Use it whenever the user says "analyze", "audit X for improvements", "look for perf wins in", "what's wrong with lib/…", "find tech debt / smells / dead weight in", "sweep this area", "poke around X and write up what you find", "turn findings into followups", "health check", or asks what could be improved in an area — even when they never say "followup". Also use it when a review or a feature run surfaces side findings the user wants written up properly. Do not use it to review a pending diff (rubber-duk-review), to execute a refactor (codebase-refactoring) or a feature (feature-development); this skill ends when the follow-up files are written and recapped.
+description: >-
+  Point it at a part of {{PROJECT_NAME}} — a directory, a module, a route, a subsystem, or a theme such as "performance", "caching", "payload size", "build time" — and it produces one `{{AI_DIR}}/followups/<domain>/<slug>.md` per finding, each with a verified problem statement, a measured cost, resolution options with a recommendation, and a solution section an implementer can pick up without re-research. It never edits code. Use it whenever the user says "analyze", "audit X for improvements", "look for perf wins in", "what's wrong with lib/…", "find tech debt / smells / dead weight in", "sweep this area", "poke around X and write up what you find", "turn findings into followups", "health check", or asks what could be improved in an area — even when they never say "followup". Also use it when a review or a feature run surfaces side findings the user wants written up properly. Do not use it to review a pending diff (rubber-duk-review), to execute a refactor (codebase-refactoring) or a feature (feature-development); this skill ends when the follow-up files are written and recapped.
 ---
 
 # Codebase analysis
@@ -38,13 +39,15 @@ tool or spawn a multi-agent sweep unless the user asked for that scale.
 
 Order of evidence, highest first:
 
-1. framework source in `node_modules/next/dist/**` — cite `file:line`;
-2. bundled docs `node_modules/next/dist/docs/**` — cite `path:line`; they
-   match the installed version, training data does not;
-3. library source (`node_modules/<pkg>/lib/*.js`);
+1. installed framework source (for example `node_modules/<framework>/**`) —
+   cite `file:line`;
+2. the version-matched framework docs `docs/conventions/stack-profile.md`
+   points at — cite `path:line`; they match the installed version, training
+   data does not;
+3. library source (`node_modules/<pkg>/…` or the ecosystem's equivalent);
 4. repo code;
 5. vendor pages via WebFetch, URL + date;
-6. repo docs, feature constitutions (`.ai/feature-constitution/**`),
+6. repo docs, feature constitutions (`{{AI_DIR}}/feature-constitution/**`),
    comments — hypotheses only. A convention doc that contradicts the code is
    itself a finding.
 
@@ -53,7 +56,7 @@ evidence order or it is removed from the file.
 
 ### Nothing in the tree changes
 
-The sweep produces files under `.ai/followups/` and nothing else. `git diff
+The sweep produces files under `{{AI_DIR}}/followups/` and nothing else. `git diff
 --stat` at the end shows no source change, and `git status --short` does not
 list the follow-up files because `.gitignore` covers them. Any fix the
 orchestrator is tempted to make on the way must be written up as a finding
@@ -61,11 +64,11 @@ rather than implemented in place.
 
 ## The journal
 
-Each finding is one file at `.ai/followups/<domain>/<slug>.md`. The domains
-are the ones `.ai/followups/README.md` rosters — the seven feature domains of
-`.ai/feature-constitution/` plus `cross-cutting/` — and that README carries
+Each finding is one file at `{{AI_DIR}}/followups/<domain>/<slug>.md`. The domains
+are the ones `{{AI_DIR}}/followups/README.md` rosters — the seven feature domains of
+`{{AI_DIR}}/feature-constitution/` plus `cross-cutting/` — and that README carries
 the naming rule, the file shape, and what is not a follow-up. `ls
-.ai/followups/<domain>/` shows worked examples in the area under sweep.
+{{AI_DIR}}/followups/<domain>/` shows worked examples in the area under sweep.
 
 The files stay **untracked** — never `git add` them — and are written into
 the primary repository checkout, never a worktree, which is deleted when its
@@ -77,20 +80,21 @@ finding hidden in prose is a finding lost.
 the done-criteria. Read it before writing the first file. The parts that take
 the longest are the parts that make the file usable:
 
-- **Solution code** is full replacement code for the changed parts, JSDoc per
-  `docs/conventions/comment-policy.md`, no archaeology comments, no
+- **Solution code** is full replacement code for the changed parts, doc
+  comments per `docs/conventions/comment-policy.md`, no archaeology comments, no
   narrative. Include the "looks wrong but isn't" list — every question a
   reviewer will ask, answered with a precedent in the repo or a locator.
 - **Tests** name the files to touch and the behaviour each new test pins.
-  Know what throws under vitest (`cacheTag`, `cacheLife`, anything needing a
-  request scope) and say which mock idiom to copy, with its `file:line`.
+  Know what throws under the test runner (framework APIs that need a request
+  scope or a server context) and say which mock idiom to copy, with its
+  `file:line`.
   Never assert against production content values in tests you propose —
   stage fixtures.
 - **Verification** is ordered, baseline first, with an expected number per
-  step and the exact command or env flag (`NEXT_PRIVATE_DEBUG_CACHE=1`,
+  step and the exact command or env flag (a debug env var,
   `curl -w '%{time_starttransfer}'`, the build-log line).
 - **Commit and PR**: the why goes in the commit message, never in comments;
-  bullets per `.ai/resources/pr-guidelines.md`; rollback cost in one line.
+  bullets per `{{AI_DIR}}/resources/pr-guidelines.md`; rollback cost in one line.
 - **Workflow**: say whether the implementer runs `feature-development` or
   `codebase-refactoring`, by deliverable (new behaviour vs nothing moved).
 
@@ -109,10 +113,10 @@ the file or in chat.
 ### The explainer
 
 The sweep also publishes one page the user reads instead of the findings
-files: `.ai/followups/<domain>/<YYYYMMDD>-<sweep-slug>-explainer.html`,
+files: `{{AI_DIR}}/followups/<domain>/<YYYYMMDD>-<sweep-slug>-explainer.html`,
 untracked like the findings, built from the shared template at
-`.ai/resources/skills/explainer-template.html`. Read
-`.ai/resources/skills/explainer-contract.md` before writing it.
+`{{AI_DIR}}/resources/skills/explainer-template.html`. Read
+`{{AI_DIR}}/resources/skills/explainer-contract.md` before writing it.
 
 Four sections, in this order: **Summary** (the findings at a glance, each
 with its headline number and recommendation — the before/after figure
@@ -125,7 +129,7 @@ questions on the mechanism behind each finding, answer in your head then
 open to check, each naming the file or measurement that holds it). The title is
 a two-to-four-word name for the sweep; every number carries its command,
 commit and date. The URL goes in the chat recap and in the comment on the
-Jira task, if one exists.
+tracker issue, if one exists.
 
 ## The phases
 
@@ -136,29 +140,29 @@ Jira task, if one exists.
 | 2 | Measure | `references/measurement-recipes.md` | a number with its method per candidate finding | never |
 | 3 | Verify | evidence order above / `rubber-duk-*` (REVIEW) | a resolving locator per load-bearing claim | never |
 | 4 | Split | judgement | the list of findings, one defect each | never |
-| 5 | Write | `references/followup-template.md` | `.ai/followups/<domain>/<slug>.md` per finding | never |
+| 5 | Write | `references/followup-template.md` | `{{AI_DIR}}/followups/<domain>/<slug>.md` per finding | never |
 | 6 | Self-check | `ls` / `grep` / `git status` | every locator resolves, tree clean | never |
-| 7 | Explain and recap | `.ai/resources/skills/explainer-template.html` + `Artifact` | `<YYYYMMDD>-<sweep-slug>-explainer.html`, published; one chat line per file | never |
+| 7 | Explain and recap | `{{AI_DIR}}/resources/skills/explainer-template.html` + `Artifact` | `<YYYYMMDD>-<sweep-slug>-explainer.html`, published; one chat line per file | never |
 
 ### Phase 0 — Scope
 
-Take the target literally: a path (`lib/corpus/loader`), a route
-(`/changelog`), a theme over an area ("performance of the content route"), or
+Take the target literally: a path (`src/billing/`), a route
+(`/checkout`), a theme over an area ("performance of the search route"), or
 "since you're in there, look for X". Restate it in one line with the lenses
 you will apply, then start. If two readings would produce materially
 different work, ask; otherwise pick the reasonable one, say so, and record it
 in each file's provenance line (the line below the title that names what
-surfaced the finding and when, as `.ai/followups/README.md` sets out).
+surfaced the finding and when, as `{{AI_DIR}}/followups/README.md` sets out).
 
 Lenses — pick the ones the target implies, not all of them:
 
 | lens | the question | typical evidence |
 |---|---|---|
-| cold cost | what runs on a cold fill, how often is it cold | benchmark, `'use cache'` scope map, container/deploy lifecycle |
+| cold cost | what runs on a cold fill, how often is it cold | benchmark, cache scope map, container/deploy lifecycle |
 | duplication | is the same work done twice per request / build | caller table, scope boundaries, cache keys |
-| payload | what does each visitor download that they don't need | HTML + Flight row byte counts, `.segments` sizes, gzip |
-| build | what does static generation pay per page | pipeline build log, `.next/server/app` sizes |
-| memory | what is resident, who sizes it | LRU config, entry sizes, deploy SKU |
+| payload | what does each visitor download that they don't need | HTML and serialized-payload byte counts, bundle sizes, gzip |
+| build | what does the build pay per page or per module | CI build log, build output sizes |
+| memory | what is resident, who sizes it | cache config, entry sizes, deploy tier |
 | coherence | do caches, tags, docs and code agree | tag emitters vs invalidators, doc locators vs `ls` |
 | contract drift | does a comment, convention or test pin something no longer true | grep the claim, read the code |
 
@@ -167,17 +171,16 @@ Lenses — pick the ones the target implies, not all of them:
 Inventory the area as data, not impressions:
 
 - every entry point and every caller of the symbols in scope — a table with
-  `file:line`, the scope it runs in (`'use cache'`? tags?), and what it pays
-  today. This is how "only the content route pays twice" becomes checkable.
-- the boundaries the framework draws: Suspense boundaries, `'use cache'`
-  scopes (each runs in its own snapshot — React `cache()` does not span
-  them), route handlers vs pages (handlers that read headers never hit the
-  ISR tier), build-time vs request-time.
+  `file:line`, the scope it runs in (cached? request-scoped?), and what it
+  pays today. This is how "only the content route pays twice" becomes checkable.
+- the boundaries the framework draws: rendering and streaming boundaries,
+  cache scopes (and what does or doesn't span them), handlers vs pages,
+  build-time vs request-time.
 - what touches it from outside the import graph: scripts, tests, fixtures,
-  config (`next.config.ts` headers/tracing/ignore lists), convention docs.
+  config (headers, tracing and ignore lists), convention docs.
 
 `grep -rn` the symbol across the repository (including root config files),
-excluding `.claude/worktrees/`, `.ai/`, and `node_modules/`; list every hit.
+excluding `.claude/worktrees/`, `{{AI_DIR}}/`, and `node_modules/`; list every hit.
 A large area
 is inventoried by a `rubber-duk-*` agent on a fast model, as the seats rule
 sets out; the orchestrator reads the table it returns.
@@ -191,20 +194,19 @@ the method beside it. Minimum bar per finding:
 - for performance, payload, or resource findings: the unit cost (ms per
   page, bytes per visitor, MB resident) with mean and tail (p50 / p90 /
   max), how often it is paid (per build page, per cold fill, per container
-  lifetime, per request, per visitor), and known outliers by name
-  (`changelog/index.mdx`, `glossary.mdx`);
+  lifetime, per request, per visitor), and known outliers by name;
 - for coherence or contract-drift findings: the exact discrepancy, the
   affected sites/callers, and the failure or drift scenario.
 
-Prefer the site's own pipeline and data over a synthetic proxy (the repo's
-plugin arrays, the real corpus, a real build log from the ADO pipeline).
+Prefer the project's own pipeline and data over a synthetic proxy (the
+repo's own configuration, the real data set, a real CI build log).
 
 ### Phase 3 — Verify every load-bearing claim
 
 Walk each claim a solution depends on down the evidence order in Ground
 rules and attach the locator. When a first version of a claim turns out
-wrong (it will — the ISR disk tier, the `x-nextjs-cache` header and
-`cache()`-across-scopes all fooled a first pass), update your finding notes
+wrong (it will — cache tiers, response headers and scope boundaries routinely
+fool a first pass), update your finding notes
 and record that the earlier claim was refuted so the final file explains the
 correction rather than silently rewriting.
 
@@ -229,7 +231,7 @@ finding.
 
 ### Phase 5 — Write each file
 
-Write each finding to `.ai/followups/<domain>/<slug>.md` following
+Write each finding to `{{AI_DIR}}/followups/<domain>/<slug>.md` following
 `references/followup-template.md` exactly, in the voice and with the
 sections the journal section sets out. Siblings from the same sweep
 cross-reference each other by filename.
@@ -258,11 +260,11 @@ gets implemented; offer to start any of them, don't start.
 
 - `references/followup-template.md` — the file shape, section by section, and
   the done-criteria.
-- `references/measurement-recipes.md` — commands for corpus stats,
-  benchmarks, cache-hit proof, payload byte counts, build-log retrieval, and
-  the shell traps that cost a round trip.
-- `docs/conventions/comment-policy.md`, `docs/conventions/cache-tagging.md`,
-  `.ai/resources/pr-guidelines.md` — the conventions a solution section must
+- `references/measurement-recipes.md` — commands for file stats,
+  benchmarks, timing, payload byte counts, build-log retrieval, and the shell
+  traps that cost a round trip.
+- `docs/conventions/comment-policy.md`, the rest of `docs/conventions/`,
+  `{{AI_DIR}}/resources/pr-guidelines.md` — the conventions a solution section must
   already satisfy.
-- `.ai/followups/README.md` — the naming rule, the file shape, and what is not
+- `{{AI_DIR}}/followups/README.md` — the naming rule, the file shape, and what is not
   a follow-up.

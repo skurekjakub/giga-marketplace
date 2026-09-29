@@ -2,10 +2,22 @@
   "name": "baseline",
   "version": "0.1.0",
   "title": "Agent working rules",
-  "summary": "A standing-rules file for agents (reply style, handoffs, design rulings, comments, tests, finishing work) imported from CLAUDE.md, with sections that switch on for the other packs you install.",
+  "summary": "A standing-rules file for agents (reply style, handoffs, design rulings, comments, tests, finishing work) imported from CLAUDE.md, plus PR guidelines — with sections that switch on for the other packs you install.",
   "appends": [
-    { "to": "CLAUDE.md", "when": "detect:agentsMd", "text": "@AGENTS.md", "create": "# {{PROJECT_NAME}}\n\n" },
-    { "to": "CLAUDE.md", "text": "@{{AI_DIR}}/agent-working-rules.md", "create": "# {{PROJECT_NAME}}\n\n" },
-    { "to": ".gitignore", "text": ".cache/claude-scratch/" }
+    {
+      "to": "CLAUDE.md",
+      "when": "detect:agentsMd",
+      "text": "@AGENTS.md",
+      "create": "# {{PROJECT_NAME}}\n\n"
+    },
+    {
+      "to": "CLAUDE.md",
+      "text": "@{{AI_DIR}}/agent-working-rules.md",
+      "create": "# {{PROJECT_NAME}}\n\n"
+    },
+    {
+      "to": ".gitignore",
+      "text": ".cache/claude-scratch/"
+    }
   ]
 }

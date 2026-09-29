@@ -1,36 +1,36 @@
 # UI surface rules
 
-Read this before landing any feature that introduces UI surface.
+Read this before landing any feature that introduces UI surface — a new
+component, a new stylesheet, a new chrome element, a new content renderer,
+anything that lands a colour, background or border in styles or markup.
 
-Any feature that introduces UI surface — a new component, a new CSS file, a
-new chrome element, a new MDX renderer, anything that lands a
-`background-color` / `color` / `border-color` / hex literal in CSS or a
-`bg-*` / `text-*` / `border-*` Tailwind utility in JSX — must theme correctly
-in dark mode. `.ai/feature-constitution/site-chrome/dark-mode/README.md` is
-the full spec.
+- **Theme tokens, never literals.** Colours, spacing and typography come from
+  the design tokens the project defines; never hard-code a hex value. Tokens
+  are what make every theme (including dark mode, if the product has one)
+  follow for free.
+- **Every theme, every surface.** If the product supports more than one theme,
+  a new surface must render correctly in each before it ships — check it in
+  the Phase 5 smoke test.
+- **One styling approach for new code.** New components follow the project's
+  current styling convention; legacy styles that predate it are not rewritten
+  wholesale — touch them only when the feature requires it.
+- **Reference component:** {{ReferenceComponentPath}} — the component whose
+  shape new UI copies (styling, state handling, accessibility).
 
-New MDX and content components style themselves with **Tailwind utility
-classes in the JSX markup** — not a scoped `.css` file, not `@apply`.
-Utility-first is the canonical Tailwind workflow, and the Tailwind docs name
-component extraction (a React component) as the correct alternative to
-`@apply`. `components/mdx/Collapsible.tsx` is the reference example: a
-native `<details>/<summary>` styled entirely in `className`, theme-token
-colour utilities (`bg-surface`, `bg-surface-alt`, `border-surface-border`,
-`text-text-muted`) so dark mode follows for free, native-element state via
-`group` + `group-open:` (the chevron rotates with `group-open:rotate-90`, no
-JS), and arbitrary variants for the long tail
-(`[&::-webkit-details-marker]:hidden`, `[&>:first-child]:mt-0`). Copy its
-shape.
+<!-- @if detect:tailwind -->
+## Tailwind CSS
 
-- **Theme tokens, never literals.** Use the generated `--color-*` utilities
-  (`bg-surface`, `border-surface-border`, …); never hardcode a hex. This is
-  what makes dark mode automatic.
-- **Tailwind v4 syntax only.** Tokens live in `@theme {}` (no
-  `tailwind.config.js`); slash-opacity (`bg-black/50`), `bg-linear-*`,
-  trailing `!` (`flex!`), `bg-(--var)`. Don't emit v3 forms (`@tailwind`,
+New components style themselves with **utility classes in the markup** — not a
+scoped CSS file, not `@apply`. Utility-first is the canonical Tailwind
+workflow, and the Tailwind docs name component extraction as the correct
+alternative to `@apply`.
+
+- Use the generated theme-token utilities (for example `bg-surface`,
+  `text-muted`), never arbitrary hex values.
+- Native-element state via `group` / `peer` variants (for example
+  `group-open:rotate-90` on a `<details>` chevron) instead of JavaScript.
+- **Tailwind v4 syntax only:** tokens live in `@theme {}` (no
+  `tailwind.config.js`); slash opacity (`bg-black/50`), `bg-linear-*`,
+  trailing `!`, `bg-(--var)`. Don't emit v3 forms (`@tailwind`,
   `bg-opacity-50`, `bg-gradient-to-r`) — they compile silently to nothing.
-- **Legacy scoped-CSS components stay put.** The files under
-  `app/styles/components/content/` (`admonitions.css`, `columns.css`,
-  `code.css`, …) predate this convention and are not rewritten wholesale —
-  only new components follow utility-first. Touch a legacy CSS file only
-  when the feature you are building requires it.
+<!-- @endif -->

@@ -1,7 +1,7 @@
 # Follow-up file template
 
-One file per finding, at `.ai/followups/<domain>/<slug>.md`. The domain is one
-of the seven the constitution corpus uses, plus `cross-cutting/` for a finding
+One file per finding, at `{{AI_DIR}}/followups/<domain>/<slug>.md`. The domain is one
+of the domains the feature-constitution roster uses, plus `cross-cutting/` for a finding
 that genuinely spans them; the slug states the problem and carries no number,
 because two runs in two worktrees both take the next free number and neither
 sees the other. Prefix the slug with a lens when the sweep has one
@@ -10,7 +10,7 @@ sees the other. Prefix the slug with a lens when the sweep has one
 The file is **untracked** and stays untracked — `.gitignore` covers the tree, so
 no staging pathspec is needed — and it is written into the primary checkout, not
 a worktree, which is deleted when its branch merges. It never enters a commit, a
-PR, a spec, a plan or a README. Full rules: `.ai/followups/README.md`.
+PR, a spec, a plan or a README. Full rules: `{{AI_DIR}}/followups/README.md`.
 
 The reader is an implementer who was not in the conversation and will not
 re-research. Every section below exists so they don't have to.
@@ -33,9 +33,9 @@ every request, every visitor) — it decides the priority.
 ## What is verified (<date>)
 
 One bullet per load-bearing fact, each with a locator that resolves:
-`node_modules/<pkg>/<file>.js:<line>`, `node_modules/next/dist/docs/<path>:<line>`,
+`node_modules/<pkg>/<file>.js:<line>`, `<framework docs>/<path>:<line>`,
 `<repo file>:<line>`, or a URL fetched today. Include the facts that *limit*
-the fix (serialisation rules, what throws under vitest, what the deploy target
+the fix (serialisation rules, what throws under the test runner, what the deploy target
 is) — those are the ones an implementer discovers the hard way.
 
 ## Every caller / every emitter
@@ -73,7 +73,7 @@ Name the exact command or env flag.
 
 ### 4. Commit and PR
 Commit subject; what the message must carry (the why — it does not go into
-comments); PR bullets per `.ai/resources/pr-guidelines.md`; rollback cost.
+comments); PR bullets per `{{AI_DIR}}/resources/pr-guidelines.md`; rollback cost.
 
 ## Expected effect
 

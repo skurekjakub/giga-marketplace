@@ -1,10 +1,10 @@
 # Decluttering — ordering and graph checks
 
-**Read [`docs/conventions/dead-code-sweep.md`](../../../../docs/conventions/dead-code-sweep.md)
-first.** It is the repo's convention for knip: config shape, why each setting is
-what it is, which false positives are confirmed, and how `--fix` behaves here.
-This file adds only what that doc does not cover — the order to work in, the
-dependency-graph checks, and the judgement calls around "dead".
+**If the repo has a dead-code convention doc under `docs/conventions/`, read
+it first** — its config shape, confirmed false positives and `--fix` rules
+outrank this file. This file covers the order to work in, the dependency-graph
+checks, and the judgement calls around "dead". Examples use knip and
+dependency-cruiser (JS/TS); other ecosystems have equivalents.
 
 ## Contents
 
@@ -31,7 +31,7 @@ The reason exports go last: static analysis cannot see a dynamically-reached
 consumer, so a wrong deletion there fails at runtime rather than at compile time.
 Files and dependencies fail loudly; exports can fail quietly.
 
-Note what the repo convention actually permits: `knip --fix --fix-type
+Note the difference in tools' fix modes: `knip --fix --fix-type
 exports,types` only strips the `export` keyword, which is safe because the
 compiler and `no-unused-vars` then surface what became genuinely unused. That is
 a different operation from letting a tool delete files in bulk — the first is
@@ -39,15 +39,10 @@ reversible and checked, the second is not.
 
 ## Cycles and coupling
 
-Ask the checker rather than reasoning about the imports:
-
-```bash
-npm run check:circular-dependencies
-```
-
-which runs dependency-cruiser against `.dependency-cruiser.cjs` over
-`lib app components scripts`. `no-circular` is
-error-severity, so a cycle fails `verify`.
+Ask the checker rather than reasoning about the imports — for example
+dependency-cruiser with a `no-circular` rule at error severity, wired into
+`{{VERIFY_CMD}}` so a cycle fails the gate. If the repo has no cycle check,
+record that in the baseline.
 
 Record the module and dependency totals as part of the Phase 0 baseline. A total
 that moves unexpectedly means the change pulled something new into the graph.
@@ -67,18 +62,18 @@ Two distinctions that decide arguments about proposed moves:
 
 Things that look dead to static analysis and are not:
 
-- Code reached only from MDX. MDX is read through `fs` at request time and never
-  statically imported, so it is outside the analysed project by design.
+- Code reached only from content or templates read through `fs` at runtime
+  (markdown/MDX, templates) — never statically imported, so outside the
+  analysed project by design.
 - A route, page, or layout the framework mounts by file location.
 - Anything named by a string in config, or reached by a computed dynamic import.
-- An inline `import('@/lib/…').SomeType` — invisible to the graph. The repo
-  convention is to rewrite these as static `import type`, not to suppress.
+- An inline `import('@/lib/…').SomeType` — invisible to the graph. Rewrite
+  these as static `import type`, not suppress them.
 
 One thing that looks alive and is not: an export whose only consumer is a test
 that exists solely to exercise it. That is a closed loop and both halves are
 removable — but check first whether the behaviour has coverage through a real
 caller, because sometimes the closed loop is the only test a live path has.
-`docs/conventions/test-only-exports.md` is the policy.
 
 ## Sweep-specific scope traps
 
@@ -87,7 +82,5 @@ caller, because sometimes the closed loop is the only test a live path has.
 - **Deleting dead code is not licence to fix the code around it.** The diff should
   be removals. A logic change smuggled into a sweep is invisible to review.
 - **A finding you cannot explain is not a finding you may delete.** Verify the
-  reason it is unreachable. "knip said so" is a lead, not a justification —
-  `docs/conventions/dead-code-sweep.md` is explicit that every finding is a
-  lead to verify, not a fact to act on, and it outranks general advice about
-  these tools.
+  reason it is unreachable. "The tool said so" is a lead, not a
+  justification — every finding is a lead to verify, not a fact to act on.

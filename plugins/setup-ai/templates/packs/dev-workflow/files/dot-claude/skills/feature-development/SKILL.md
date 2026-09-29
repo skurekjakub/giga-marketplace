@@ -1,13 +1,14 @@
 ---
 name: feature-development
-description: Orchestrates the phased per-feature workflow for non-trivial feature work in kentico-docs-next (research → map unknowns → brainstorm → spec-review → plan → worktree → execute → smoke-test → review → finish), producing a `.ai/feature-constitution/<domain>/<slug>/` folder with implementation journal artifacts (`research.md`, `unknowns.md`, `spec.md`, `plan*.md`) and the mandatory evergreen `README.md`. Use this skill whenever the user starts non-trivial feature work that touches more than one file — phrases like "let's build", "add a feature", "implement", "start work on", "design", "new capability", "ship a", "i want to add", "we need to support" — or whenever the user mentions a feature constitution, `.ai/feature-constitution`, feature flow, the README-as-spec pattern, or asks how to scope/plan/finish a feature in this repo. Also use proactively before invoking any of `superpowers:brainstorming` / `superpowers:writing-plans` / `superpowers:subagent-driven-development` / `superpowers:finishing-a-development-branch` standalone — those skills are phases of this larger flow and should be sequenced through it rather than fired ad-hoc. Skip for trivial single-file fixes (typos, one-liner bugs, copy edits) where no constitution is warranted, and hand off to `codebase-refactoring` when the deliverable is behavior-preserving — a cleanup, consolidation, module move, rename sweep, dead-code removal, or duplicate collapse — since that flow adds the baseline, inventory, and completeness gates this one lacks.
+description: >-
+  Orchestrates the phased per-feature workflow for non-trivial feature work in {{PROJECT_NAME}} (research → map unknowns → brainstorm → spec-review → plan → worktree → execute → smoke-test → review → finish), producing a `{{AI_DIR}}/feature-constitution/<domain>/<slug>/` folder with implementation journal artifacts (`research.md`, `unknowns.md`, `spec.md`, `plan*.md`) and the mandatory evergreen `README.md`. Use this skill whenever the user starts non-trivial feature work that touches more than one file — phrases like "let's build", "add a feature", "implement", "start work on", "design", "new capability", "ship a", "i want to add", "we need to support" — or whenever the user mentions a feature constitution, `{{AI_DIR}}/feature-constitution`, feature flow, the README-as-spec pattern, or asks how to scope/plan/finish a feature in this repo. Also use proactively before invoking any of `superpowers:brainstorming` / `superpowers:writing-plans` / `superpowers:subagent-driven-development` / `superpowers:finishing-a-development-branch` standalone — those skills are phases of this larger flow and should be sequenced through it rather than fired ad-hoc. Skip for trivial single-file fixes (typos, one-liner bugs, copy edits) where no constitution is warranted, and hand off to `codebase-refactoring` when the deliverable is behavior-preserving — a cleanup, consolidation, module move, rename sweep, dead-code removal, or duplicate collapse — since that flow adds the baseline, inventory, and completeness gates this one lacks.
 ---
 
 # Feature development
 
 A feature's deliverable is **new behaviour, proven to work** — in tests, in a
 browser, and in a design record a future reader can trust: a
-`.ai/feature-constitution/<domain>/<slug>/` folder holding the journal of how
+`{{AI_DIR}}/feature-constitution/<domain>/<slug>/` folder holding the journal of how
 the work was thought through and the evergreen `README.md` describing the
 feature as it now exists.
 
@@ -19,10 +20,10 @@ workflow in order.
 
 ### When this skill applies
 
-Use it for non-trivial new capability — a sitemap route, custom sidebar
-personas, a back-to-top button rebuilt on Intersection Observer (mechanism
-and observable behaviour both change), a dev model switcher, or frontmatter
-validation across all collections.
+Use it for non-trivial new capability — a new route or endpoint with its UI,
+a settings screen, a component rebuilt on a different mechanism (mechanism
+and observable behaviour both change), a new integration, or validation
+across a whole data model.
 
 Skip it for a typo, one-line bug, copy edit, or dependency bump — just do
 the work.
@@ -42,7 +43,7 @@ costs the design record entirely.
 Every review and implementation seat is a `rubber-duk-*` agent, never
 `general-purpose` or a generic reviewer. Pass `model` explicitly on every
 dispatch — an omitted `model` inherits the session's, never the intended
-choice. Read `.ai/resources/skills/seats.md` before the first dispatch — the
+choice. Read `{{AI_DIR}}/resources/skills/seats.md` before the first dispatch — the
 reviewer/implementer routing table, test-authoring delegation,
 model-scaling judgement, and per-dispatch prompt requirements live there.
 
@@ -76,11 +77,11 @@ This is designed in, not bolted on after:
 
 - **Spec:** a **"Refactoring & reorganization"** section — the target module
   tree, the rename list (old → new), and the ripple inventory (importers,
-  `outputFileTracingIncludes` / `ignoreIssue` globs in `next.config.ts`,
-  `client-safety` allowlists, convention-named verbs per
-  `docs/conventions/data-access-naming.md`, tests bound to moved modules).
+  build and tooling config that names paths — bundler tracing globs, lint
+  and boundary allowlists — naming conventions in `docs/conventions/`, and
+  tests bound to moved modules).
 - **Plan:** moves and renames are tracked tasks with their own verification
-  (`npm run typecheck` plus affected suites), sequenced so each move lands
+  (typecheck plus the affected suites), sequenced so each move lands
   with its importer updates, never a half-migrated tree spanning two
   structures.
 - **Review:** a new structure left standing beside the old one is an
@@ -94,26 +95,25 @@ after this change?"_ If not, move and rename it.
 
 The rule against unrelated refactoring holds through every phase, with one
 exception: a sync→async flip. The codebase is async-first
-(`docs/conventions/data-access-naming.md` § Async-first), so a signature
-flipped to `Promise<…>` and awaited up the chain proposes the required
-shape; the finding reserved here is a sync escape hatch (a preloaded
+(`{{AI_DIR}}/agent-working-rules.md` § Design rulings), so a signature
+flipped to async and awaited up the chain proposes the required shape; the finding reserved here is a sync escape hatch (a preloaded
 snapshot, a sync-after-init accessor) proposed instead of the flip.
 
 The orchestrator — never a subagent — writes deferred work to
-`.ai/followups/<domain>/<slug>.md`, per `.ai/followups/README.md`. Future
+`{{AI_DIR}}/followups/<domain>/<slug>.md`, per `{{AI_DIR}}/followups/README.md`. Future
 work never lands in the constitution's implementation artifacts or final
 spec — a spec's "Out of scope" section defines non-goals only.
 
-### UI surfaces: dark mode and Tailwind utilities
+### UI surfaces: tokens and themes
 
 Read `references/ui-surface-rules.md` before landing a feature that
-introduces UI surface — a new component, CSS file, chrome element, or MDX
-renderer. It has the dark-mode requirement, the utility-first Tailwind v4
-pattern with its reference example, and the legacy scoped-CSS carve-out.
+introduces UI surface — a new component, stylesheet, chrome element, or
+content renderer. It has the token and theming requirements, the styling
+convention with its reference component, and the legacy-styles carve-out.
 
 ## The journal
 
-`.ai/feature-constitution/<domain>/<slug>/` holds a feature's implementation
+`{{AI_DIR}}/feature-constitution/<domain>/<slug>/` holds a feature's implementation
 artifacts, final spec, and explainer. Read
 `references/constitution-folder.md` before minting a folder or choosing
 which existing one a change belongs under: the file-class split, the "does
@@ -126,38 +126,38 @@ and the template.
 
 ### The explainer — `explainer.html`
 
-Write it to `.ai/feature-constitution/<domain>/<slug>/explainer.html`; read
-`.ai/resources/skills/explainer-contract.md` first — the template, the four
+Write it to `{{AI_DIR}}/feature-constitution/<domain>/<slug>/explainer.html`; read
+`{{AI_DIR}}/resources/skills/explainer-contract.md` first — the template, the four
 required sections, and the publishing and linking steps.
 
 ## The phases
 
 Each phase invokes a separate skill; this skill sequences them and ensures
-each artifact lands in `.ai/feature-constitution/<domain>/<slug>/`. The
+each artifact lands in `{{AI_DIR}}/feature-constitution/<domain>/<slug>/`. The
 `superpowers:*` skills default to their own save paths — override them to
 point at the constitution folder.
 
 | # | Phase | Skill / tool | Artifact | Skip when |
 | --- | --- | --- | --- | --- |
-| 0 | Research | `iterative-research` | `research.md` | domain is familiar |
-| 0.5 | Map unknowns | `mapping-unknowns` | `unknowns.md` | the person waves it off in a sentence — record the skip, never argue |
+| 0 | Research | `research-planning:iterative-research` | `research.md` | domain is familiar |
+| 0.5 | Map unknowns | `research-planning:mapping-unknowns` | `unknowns.md` | the person waves it off in a sentence — record the skip, never argue |
 | 1 | Brainstorm | `superpowers:brainstorming` | `spec.md` | never — chat is not a substitute |
 | 1.5 | Spec review | `rubber-duk-*` + `superpowers:receiving-code-review` | findings folded into `spec.md` | never |
 | 2 | Plan | `superpowers:writing-plans` | `plan.md` (or `plan-track-*.md`) | never |
 | 3 | Isolate | `superpowers:using-git-worktrees` | — | already on an isolated feature branch or worktree |
 | 4 | Execute | `superpowers:subagent-driven-development` (or `superpowers:executing-plans`) | commits on the branch | never |
-| 4.5 | e2e coverage | `rubber-duk-e2e` (WRITE) | specs under `e2e/**` or `e2e-admin/**` | feature has no user-facing behaviour |
-| 5 | Smoke test | `next-dev-loop` (`/_next/mcp` + `agent-browser`) on port 3002 | recorded evidence: route, observed behaviour, screenshot | no observable runtime surface |
+| 4.5 | e2e coverage | `rubber-duk-e2e` (WRITE) | specs under `{{E2E_GLOB}}` | feature has no user-facing behaviour, or the repo has no e2e suite |
+| 5 | Smoke test | the running app (`{{DEV_CMD}}`) + `agent-browser` | recorded evidence: route, observed behaviour, screenshot | no observable runtime surface |
 | 6 | Review | `superpowers:requesting-code-review` + `superpowers:receiving-code-review` + `rubber-duk-*` | findings fixed or rebutted | never |
-| 7 | Finish | `.ai/resources/skills/explainer-template.html` + `Artifact` + `superpowers:finishing-a-development-branch` | `README.md` (+ updated `.ai/diagrams/*` if affected) + `explainer.html`, published | never |
+| 7 | Finish | `{{AI_DIR}}/resources/skills/explainer-template.html` + `Artifact` + `superpowers:finishing-a-development-branch` | `README.md` (+ updated `{{AI_DIR}}/diagrams/*` if affected) + `explainer.html`, published | never |
 
 ### Phase 0 — Research (conditional)
 
-Invoke `iterative-research` only when the feature touches an unfamiliar
+Invoke `research-planning:iterative-research` only when the feature touches an unfamiliar
 framework, library, or pattern: three rounds of three parallel WebSearches
 with synthesis between rounds, ending in a "Final takeaways" section citing
 primary sources. Save to
-`.ai/feature-constitution/<domain>/<slug>/research.md`.
+`{{AI_DIR}}/feature-constitution/<domain>/<slug>/research.md`.
 
 Skip when the domain is familiar — don't pad the constitution with a
 research file that says "we know how to do this"; its absence is the
@@ -165,13 +165,13 @@ signal.
 
 ### Phase 0.5 — Map unknowns
 
-Invoke `mapping-unknowns` before brainstorming. The roster and the research
+Invoke `research-planning:mapping-unknowns` before brainstorming. The roster and the research
 (when Phase 0 ran) are the light territory read the pass needs; it reads
 little more. The pass maps what the person knows, knows they lack, would
 recognise on sight, and has never considered about this feature — one
 question per message, closing with the decisions they now own and the
 pattern that follows. Save the final map and brief to
-`.ai/feature-constitution/<domain>/<slug>/unknowns.md`.
+`{{AI_DIR}}/feature-constitution/<domain>/<slug>/unknowns.md`.
 
 The gate is soft: offer the pass every time, never argue for it. When the
 person waves it off in a sentence, write `Unknowns pass: skipped by the
@@ -181,8 +181,8 @@ write no `unknowns.md`. A recorded skip is a decision, not a missing phase.
 ### Phase 1 — Brainstorm
 
 Invoke `superpowers:brainstorming`, telling it in the same breath to save to
-`.ai/feature-constitution/<domain>/<slug>/spec.md`. Its default path sits
-outside this repo's journal; a spec landing there is misplaced, not merely
+`{{AI_DIR}}/feature-constitution/<domain>/<slug>/spec.md`. Its default path sits
+outside the project's journal; a spec landing there is misplaced, not merely
 unconventional.
 
 The spec captures:
@@ -213,8 +213,9 @@ unjustified sizing, and convention divergence; `rubber-duk-backend` and
 `rubber-duk-frontend` evaluate domain architecture and subsystem boundaries;
 `rubber-duk-auditor` assesses security exposure; `rubber-duk-tests` (AUDIT)
 evaluates planned test strategies when a test plan exists. Skip a reviewer
-only when its domain is absent from the spec, and state which and why (e.g.
-"frontend skipped — RSC render-fork logic, no visual surface").
+only when its domain is absent from the spec, or the agent isn't installed
+in `.claude/agents/` — and state which and why (e.g. "frontend skipped —
+server-side data logic, no visual surface").
 
 Each reviewer verifies the spec's load-bearing claims against the code —
 not its say-so — and returns findings as `file:line` + severity (BLOCKER /
@@ -232,15 +233,14 @@ or IMPORTANT — fix it or rebut it explicitly.
 ### Phase 2 — Plan
 
 Invoke `superpowers:writing-plans`, overriding its save path to
-`.ai/feature-constitution/<domain>/<slug>/plan.md` the same way.
+`{{AI_DIR}}/feature-constitution/<domain>/<slug>/plan.md` the same way.
 
 If the work splits into independent tracks, name them `plan-track-a.md`,
 `plan-track-b.md`, and so on — each its own bite-sized task list with file
 paths, complete code, and exact verification commands.
 
-Don't include "Step N: Commit" tasks — the project's hook drops them from
-the `writing-plans` template; commits happen as a natural consequence of
-work, not a scripted task.
+Don't include "Step N: Commit" tasks — commits happen as a natural
+consequence of work, not a scripted task.
 
 Lead the plan with the decisions the person is most likely to change — data
 models, type interfaces, anything user-facing — so review effort lands where
@@ -282,14 +282,15 @@ git-index races), batched by disjoint file ownership so the worktree
 branches merge conflict-free. Never run two parallel agents writing the same
 file (a shared barrel, a shared context module) — combine those tasks into
 one agent. Re-derive the dependency graph from file ownership, not the
-plan's track order: a client-UI track under `components/**` and a backend
-track under `lib/**` can run fully concurrent even when the plan lists them
+plan's track order: a UI track and a backend track in disjoint folders can
+run fully concurrent even when the plan lists them
 sequentially. After each parallel agent reports, merge its worktree branch
 into the feature branch, then prune the worktree and its temporary branch
 (`git worktree remove <path>` plus branch deletion) — changed worktrees
 aren't auto-cleaned and leak disk. The per-track review gate still fires at
 each track boundary, over the merged diff.
 
+<!-- @if option:agents=rubber-duk-e2e -->
 ### Phase 4.5 — e2e coverage (mandatory)
 
 Every feature with user-facing behaviour ships end-to-end coverage, not just
@@ -297,37 +298,38 @@ unit/integration tests — a gate separate from the Phase 5 smoke test: smoke
 is a one-shot inspection, e2e is committed, repeatable regression coverage.
 
 Dispatch `rubber-duk-e2e` (WRITE). Read `docs/conventions/e2e-conventions.md`
-for the E1–E7 yardstick and the two-harness split: public and runtime
-surfaces go under `e2e/**` (Playwright against the standalone build, port
-3003); dev-only `/admin` surfaces go under `e2e-admin/**` — the standalone
-build 404s `/admin`, so admin features can't be covered by `e2e/**`.
+for the E1–E7 yardstick and how the suite runs. Specs go under
+`{{E2E_GLOB}}` and run with `{{E2E_CMD}}`.
 
 Cover real user flows end to end — open the route, fill the form, submit,
 assert the persisted or rendered result and any filesystem or data
 side-effect — plus the failure paths the feature introduces.
 
 A feature does not reach Phase 6 with e2e flows unwritten. Skip only when
-the change introduces no browser-observable runtime behaviour across public
-or dev-admin surfaces (pure build tooling or a type-only change) — and state
-why.
+the change introduces no browser-observable runtime behaviour (pure build
+tooling or a type-only change) — and state why.
+<!-- @endif -->
 
 ### Phase 5 — Smoke test (mandatory)
 
 Once implementation is committed and automated tests pass, load the feature
 in the running app to catch failures test suites routinely miss: hydration
-mismatches, RSC/Suspense boundary breaks, unimported CSS, or code that
-renders in jsdom but fails in Next.
+mismatches, rendering-boundary breaks, unimported styles, or code that
+passes in a test environment but fails in the real runtime.
 
-Start the dev server on port 3002 (reserved for manual/MCP inspection — e2e
-owns 3003; see `AGENTS.md`) and drive it with the `next-dev-loop` skill:
-render the feature's route, inspect its component tree, exercise its
-behaviour, and confirm zero console errors and zero hydration/RSC errors.
-Ask `/_next/mcp` for errors as well — it catches the server-side failures
-the page never shows. For any UI surface, also verify it in dark mode, at a
-narrow viewport, and under an accessibility pass. Read
-`docs/conventions/browser-tooling.md` for which tool answers which question
-— `/_next/mcp` for what the dev server knows, `agent-browser` for what the
-browser renders — and the exact commands.
+Start the dev server (`{{DEV_CMD}}`, {{LOCAL_URL}}) — or reuse the one
+already running — and drive it with the `agent-browser` skill: open the
+feature's route, exercise its behaviour, and confirm zero console errors.
+Check the dev server's own output for server-side errors the page never
+shows.
+<!-- @if profile:nextjs -->
+For Next.js, load the `next-dev-loop` skill and ask the dev server's
+`/_next/mcp` endpoint for errors as well — it reports server-side and
+hydration failures the page never shows. `/_next/mcp` answers what the dev
+server knows; `agent-browser` answers what the browser renders.
+<!-- @endif -->
+For any UI surface, also verify it in every theme the product has, at a
+narrow viewport, and under an accessibility pass.
 
 `superpowers:verification-before-completion` applies — no "it works" claim
 without having loaded it. Report what you checked (route, behaviour, and a
@@ -336,7 +338,7 @@ review with an open smoke-test failure.
 
 Skip only when the change has no observable runtime surface (pure build
 tooling, a type-only change). Anything a reader can see or interact with —
-UI, routes, MDX components, chrome — always smoke-tests.
+UI, routes, content renderers, chrome — always smoke-tests.
 
 ### Phase 6 — Review
 
@@ -349,8 +351,8 @@ In order:
    seats rule names: `rubber-duk-backend` (REVIEW) for server/lib changes,
    `rubber-duk-frontend` (REVIEW) for UI, `rubber-duk-auditor` when the diff
    touches a security-sensitive surface.
-3. `rubber-duk-tests` (AUDIT) for Vitest test changes and `rubber-duk-e2e`
-   (AUDIT) for Playwright test changes, whenever test files change — a
+3. `rubber-duk-tests` (AUDIT) for unit/integration test changes and
+   `rubber-duk-e2e` (AUDIT) for e2e test changes, whenever test files change — a
    separate gate from the general review.
 4. `superpowers:receiving-code-review` — process all feedback from steps 1–3
    with technical rigor, not performative agreement.
@@ -371,7 +373,7 @@ BLOCKER/IMPORTANT from the test audit — dispatch implementation subagents
 
 ### Phase 7 — Finish
 
-The orchestrator writes `README.md` first, brings `.ai/diagrams/` in line
+The orchestrator writes `README.md` first, brings `{{AI_DIR}}/diagrams/` in line
 with the code, walks the definition of done, then invokes
 `superpowers:finishing-a-development-branch` so the constitution and
 diagrams land in the same PR as the implementation.
@@ -382,23 +384,23 @@ treat the implementation artifacts as source material to skim, not text to
 transplant. Update an existing parent constitution's `README.md` too when
 the feature changed a shape it describes.
 
-**Diagrams.** `.ai/diagrams/` orients a fresh agent in a subsystem before it
+**Diagrams.** `{{AI_DIR}}/diagrams/` orients a fresh agent in a subsystem before it
 touches code; a diagram naming a deleted module, renamed layer, or
 superseded flow is confidently wrong yet read as ground truth.
-Read the table in `.ai/diagrams/README.md` and open each diagram whose
+Read the table in `{{AI_DIR}}/diagrams/README.md` and open each diagram whose
 subsystem the feature touched — a path, name, layer, or responsibility
 change affects a diagram even when its box isn't redrawn. Verify every path,
 module, function, and route a touched diagram names still exists (`grep` or
 `ls` them, don't trust the diagram's claim). Add a diagram for a subsystem
 that has none — new layer, engine, or data-access pattern → new
-`.ai/diagrams/<subsystem>.md`, plus its row in the diagrams `README.md`
+`{{AI_DIR}}/diagrams/<subsystem>.md`, plus its row in the diagrams `README.md`
 table and a mention in the reading order if it belongs there. Follow the
 README's current-state tone (no historical framing, branch names, or commit
 SHAs) — a feature doesn't finish with a diagram that contradicts the tree it
 ships.
 
 **Definition of done**, the last gate before finishing: open every
-`.ai/dod/` checklist whose surface the feature touched and walk it item by
+`{{AI_DIR}}/dod/` checklist whose surface the feature touched and walk it item by
 item against the branch diff — a **must** item is met or the feature isn't
 done, an **if relevant** item is met or you state why it doesn't apply.
 Where unmet, dispatch an implementer to fix the code (or fix inline if
@@ -406,23 +408,27 @@ trivial) and re-check; never edit the checklist to pass the work. Report the
 walk — which checklists, which items didn't apply and why — as evidence,
 and say plainly when no checklist covers the surface.
 
-**Explainer.** Once the final review is clean and `npm run verify` exits 0
+**Explainer.** Once the final review is clean and `{{VERIFY_CMD}}` exits 0
 on the final tree, write and publish `explainer.html` per the journal
 section's contract and hand the user the URL — it goes in the PR body, and
-once the PR exists, comment on the Jira task with the PR link and the
+once the PR exists, comment on the tracker issue (if the work has one) with
+the PR link and the
 explainer link.
+<!-- @if pack:issue-tracking -->
+File any tracker issues this needs with the `file-jira-issue` skill.
+<!-- @endif -->
 
 ## Reference files
 
 - `references/constitution-folder.md` — the file-class split, minting vs.
-  reusing a folder, the seven-domain roster, and the `[[slug]]`
-  cross-reference rule.
+  reusing a folder, choosing a domain, and the `[[slug]]` cross-reference
+  rule.
 - `references/readme-contract.md` — the README's required tone, what to
   always/never include, the update rule, and the template.
-- `references/ui-surface-rules.md` — the dark-mode requirement and the
-  utility-first Tailwind v4 pattern for new UI surface.
-- `.ai/resources/skills/seats.md` — reviewer/implementer routing, test
+- `references/ui-surface-rules.md` — tokens, themes and the styling
+  convention for new UI surface.
+- `{{AI_DIR}}/resources/skills/seats.md` — reviewer/implementer routing, test
   authoring delegation, and model scaling, shared with `codebase-refactoring`.
-- `.ai/resources/skills/explainer-contract.md` — the explainer template, its
+- `{{AI_DIR}}/resources/skills/explainer-contract.md` — the explainer template, its
   four required sections, and publishing steps, shared across the
   per-feature flows.

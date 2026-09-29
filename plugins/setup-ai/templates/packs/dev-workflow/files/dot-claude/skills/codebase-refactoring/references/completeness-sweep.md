@@ -32,7 +32,7 @@ Count first, then act. The point is a number you can re-derive independently, so
 Quote the closing delimiter so `foo` does not also match `foo-bar`:
 
 ```bash
-git grep -l "@/lib/thing/registry'" -- app components lib scripts __tests__ e2e e2e-admin
+git grep -l "@/lib/thing/registry'" -- <every source, script and test root>
 ```
 
 Do this per module rather than for the directory, then also take the union — a
@@ -48,11 +48,15 @@ to think a sweep was incomplete.
 
 ### The dependency graph
 
-Ask the checker, not your reading of the imports:
+Ask the checker, not your reading of the imports. In a JS/TS repo with
+dependency-cruiser:
 
 ```bash
-npx depcruise --config .dependency-cruiser.cjs --progress none lib app components scripts
+npx depcruise --config .dependency-cruiser.cjs --progress none <source roots>
 ```
+
+Other ecosystems have equivalents (import-linter, `go list -deps`,
+jdeps…). No checker at all is a baseline finding worth recording.
 
 Record the module and dependency totals — they are the baseline that proves you
 did not add a cycle or orphan a subtree.
@@ -117,23 +121,25 @@ the same module. Grep both.
 snapshot key, or a fixture keyed by module path does not appear in the import
 graph and will not fail to compile.
 
-## Repo-specific locator classes
+## Locator classes
 
-Things in this repo that name source paths without importing them:
+Things that name source paths without importing them — check every one the
+repo has:
 
 | Where | Why it bites |
 |---|---|
 | `docs/conventions/*.md` | These are rules agents follow. A stale path makes the convention wrong, not just confusing. |
-| `.ai/dod/*.md` | Checklist items in `must` form naming helpers by path and symbol. |
-| `.ai/diagrams/*.md` | Read as ground truth for orientation before touching a subsystem. |
-| `AGENTS.md` | Loaded into context every session. Stale content here misdirects every agent. |
+| `{{AI_DIR}}/dod/*.md` | Checklist items in `must` form naming helpers by path and symbol. |
+| `{{AI_DIR}}/diagrams/*.md` | Read as ground truth for orientation before touching a subsystem. |
+| `CLAUDE.md` / `AGENTS.md` | Loaded into context every session. Stale content here misdirects every agent. |
 | Relative markdown links | `[label](../lib/thing.ts)` 404s silently; nothing validates them. |
-| `next.config.ts` | `turbopack.ignoreIssue`, `outputFileTracingIncludes` / `Excludes` globs. Content paths mostly, but check. |
-| `knip.json` | `entry` and `project` globs decide what dead-code analysis can see. |
-| `.dependency-cruiser.cjs` | The path list passed to the checker. |
+| Bundler / framework config | Tracing, include/exclude and ignore globs (for example `next.config.*` `outputFileTracingIncludes`). |
+| Dead-code tool config | `entry` / `project` globs (for example `knip.json`) decide what the analysis can see. |
+| Dependency-graph checker config | The path list passed to the checker. |
+| CI pipeline definitions | Jobs naming paths or files directly. |
 | `package.json` scripts | Scripts naming files directly. |
 
-`.ai/feature-constitution/*/*/spec*.md` and `plan*.md` are frozen journals —
+`{{AI_DIR}}/feature-constitution/*/*/spec*.md` and `plan*.md` are frozen journals —
 correctly out of scope. Their `README.md` is not. The extra path segment is the
 domain: constitutions live at `<domain>/<slug>/`, so a one-star glob matches
-seven directories and nothing else.
+the domain directories and nothing else.

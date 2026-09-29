@@ -74,8 +74,7 @@
     "dot-claude/hooks/remind-rules": "option:hooks=remind-rules",
     "{{AI_DIR}}/reminders.md": "option:hooks=remind-rules",
     "dot-claude/hooks/notify-done": "option:hooks=notify-done",
-    "dot-claude/hooks/ado-pr-body": "option:hooks=ado-pr-body",
-    "{{AI_DIR}}/resources/pr-guidelines.md": "option:hooks=ado-pr-body"
+    "dot-claude/hooks/ado-pr-body": "option:hooks=ado-pr-body"
   },
   "settings": {
     "hooks": {

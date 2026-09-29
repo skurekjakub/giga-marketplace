@@ -27,5 +27,5 @@ The claims worth naming explicitly:
 
 One claim a reviewer must not make: **that a function has to stay
 synchronous.** Async flips are expected under
-`docs/conventions/data-access-naming.md` § Async-first — reviewers must flag
+`{{AI_DIR}}/agent-working-rules.md` § Design rulings (async-first) — reviewers must flag
 proposed sync escape hatches instead of defending the sync signature.

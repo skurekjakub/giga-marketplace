@@ -1,0 +1,46 @@
+{
+  "name": "dev-workflow",
+  "version": "0.1.0",
+  "title": "Development workflows",
+  "summary": "Phased orchestration skills for feature work, bugfixes, behaviour-preserving refactors and read-only codebase analysis — with journals under AI_DIR (feature constitutions, bugfix and refactor records, follow-ups, DoD checklists, regression suites, diagrams), rubber-duk review gates and published explainers.",
+  "requires": {
+    "packs": [
+      "baseline",
+      "review-agents"
+    ],
+    "plugins": [
+      {
+        "id": "superpowers@claude-plugins-official",
+        "marketplace": {
+          "name": "claude-plugins-official",
+          "repo": "anthropics/claude-plugins-official"
+        },
+        "why": "Each workflow phase runs a superpowers skill (brainstorming, writing-plans, subagent-driven-development, systematic-debugging, TDD, code review, finishing a branch)."
+      },
+      {
+        "id": "research-planning@giga-marketplace",
+        "marketplace": {
+          "name": "giga-marketplace",
+          "repo": "skurekjakub/giga-marketplace"
+        },
+        "why": "Research and unknowns phases use research-planning:iterative-research and research-planning:mapping-unknowns."
+      }
+    ],
+    "vendorSkills": [
+      {
+        "source": "vercel-labs/agent-browser",
+        "skills": [
+          "agent-browser"
+        ],
+        "why": "Reproduce and smoke-test in the running app."
+      }
+    ]
+  },
+  "options": {},
+  "appends": [
+    {
+      "to": ".gitignore",
+      "text": "{{AI_DIR}}/followups/*\n!{{AI_DIR}}/followups/README.md\n{{AI_DIR}}/**/*-handoff.md"
+    }
+  ]
+}

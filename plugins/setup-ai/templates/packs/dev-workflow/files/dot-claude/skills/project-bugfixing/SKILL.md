@@ -1,6 +1,7 @@
 ---
 name: project-bugfixing
-description: Use when fixing a bounded, already-identified defect in kentico-docs-next — an observed symptom, a filed ticket, a regression, or working code no test reaches. Triggers include "fix this bug", "this is broken", "X renders nothing", "Y prop is ignored", "spacing is wrong on Z", "add a regression test for". Not for new behaviour (use feature-development) and not for behaviour-preserving cleanup (use codebase-refactoring).
+description: >-
+  Use when fixing a bounded, already-identified defect in {{PROJECT_NAME}} — an observed symptom, a filed ticket, a regression, or working code no test reaches. Triggers include "fix this bug", "this is broken", "X renders nothing", "Y prop is ignored", "spacing is wrong on Z", "add a regression test for". Not for new behaviour (use feature-development) and not for behaviour-preserving cleanup (use codebase-refactoring).
 ---
 
 # Project bugfixing
@@ -20,9 +21,9 @@ closing it requires a **decision the code does not already contain**.
 
 | Signal | Route |
 |---|---|
-| A JSDoc, convention doc or `.ai/dod/` checklist says X, the code does Y | bugfix |
-| Code that works but nothing under `__tests__/` or `e2e/` reaches | bugfix (gap analysis) |
-| Closing it needs a new frontmatter field, resource, schema key or route | **feature** — use `feature-development` |
+| A doc comment, convention doc or `{{AI_DIR}}/dod/` checklist says X, the code does Y | bugfix |
+| Code that works but no test reaches | bugfix (gap analysis) |
+| Closing it needs a new config field, resource, schema key or route | **feature** — use `feature-development` |
 | Closing it needs picking between two defensible behaviours | **feature** |
 | Same behaviour, better shape | **refactor** — use `codebase-refactoring` |
 | "While I'm here I'll also…" | Neither. Separate item, separate branch. |
@@ -49,9 +50,10 @@ reporting "test written and passing" has not established RED; ask for the
 failing output, or run it against the reverted fix yourself.
 
 Every dispatch goes to a `rubber-duk-*` agent, never `general-purpose`,
-which carries none of the repo's conventions (comment policy, Cache
-Components rules, port map, e2e yardstick) and re-litigates what the roster
-already knows. Routed by role: `rubber-duk-tests` (WRITE) writes the
+which carries none of the repo's conventions (comment policy, stack profile,
+e2e yardstick) and re-litigates what the roster already knows. If a seat's
+agent isn't installed in `.claude/agents/`, say so and do that seat's work
+inline. Routed by role: `rubber-duk-tests` (WRITE) writes the
 regression test whenever adding a new test file or test block (`it`/`test`),
 and `rubber-duk-tests` (AUDIT) audits it — the orchestrator writes the test
 inline only when modifying assertions within an existing test block;
@@ -60,94 +62,73 @@ concern, separate harness; `rubber-duk-backend` / `rubber-duk-frontend`
 (IMPLEMENT) exclusively for implementing Phase 8 review-finding fix commits
 when delegated by the orchestrator; `rubber-duk-review`, `rubber-duk-backend`
 (REVIEW), `rubber-duk-frontend` (REVIEW) and `rubber-duk-auditor` for
-review, by surface. Pass `model` explicitly on every dispatch: `sonnet` (the
-fast, economical model) for mechanical fix commits, `opus` (the advanced
-reasoning model) for review seats and negative-proof regression tests, and
-`fable` (the most capable tier) for the whole-branch review in Phase 8.
+review, by surface. Pass `model` explicitly on every dispatch, following
+`{{AI_DIR}}/resources/skills/seats.md`: a fast, economical model for
+mechanical fix commits, a strong reasoning model for review seats and
+negative-proof regression tests, and the most capable model available for
+the whole-branch review in Phase 8.
 
 Every dispatched implementation subagent's prompt names
 `docs/conventions/comment-policy.md` and requires reading it first.
 
-Tests live under `__tests__/`, mirroring the subject's source path
-(`docs/conventions/test-layout.md`) — not beside the file they cover.
+Tests live where `docs/conventions/test-layout.md` says (`{{UNIT_TEST_GLOB}}`).
 
-### Read the Next.js docs on disk first
+### Read the framework docs on disk first
 
-Before any Next.js work, read the relevant doc under
-`node_modules/next/dist/docs/`. Training data is outdated; the docs on disk
-are the source of truth. This bites hardest on bugfixes, because the
-symptoms that look like application bugs — a page rendering empty, a stale
-value surviving a write, a boundary resolving in the wrong order — are
-usually Cache Components, PPR or Suspense semantics. `docs/gotchas.md`
-carries the ones already paid for.
+Before any framework work, read the version-matched docs the stack profile
+(`docs/conventions/stack-profile.md`) points at. Training data is outdated;
+the installed docs are the source of truth. This bites hardest on bugfixes,
+because the symptoms that look like application bugs — a page rendering
+empty, a stale value surviving a write, a boundary resolving in the wrong
+order — are usually framework caching or rendering semantics.
+`docs/gotchas.md` carries the ones already paid for.
 
 Repo facts a bugfix runs into:
 
-- **Ports.** 3002 dev / manual / MCP inspection, 3003 e2e, 3004 `npm run
-  start`, 3007 admin e2e. `e2e/constants.ts` owns the first three; 3007 is
-  defined in `e2e-admin/constants.ts`. Never squat 3002.
-- **`output: 'standalone'`.** `next start` does not work; the e2e harness
-  serves `node .next/standalone/server.js`. A bug that only reproduces in
-  production is often a tracing gap — see
-  `docs/conventions/output-file-tracing.md`.
-- **Content is MDX read at runtime** by `lib/corpus/loader/mdx-loader.tsx`
-  via `readFileSync`, not bundled. A "content missing in prod" symptom
-  usually means `outputFileTracingIncludes`, not the loader.
-- **`cacheComponents: true`.** Every async server read sits inside a
-  Suspense boundary or a `cache()`/`'use cache'` scope. Stale-value and
-  empty-render bugs start at `docs/conventions/cache-tagging.md` and
-  `docs/conventions/cache-components-suspense-placement.md`.
-- **Registers.** `.ai/regression/` is the manual click-through suites,
-  `.ai/dod/` per-surface definition-of-done, `.ai/feature-constitution/` the
-  feature trail (grouped by domain, `<domain>/<slug>/`, rostered in its own
-  `README.md`), `.ai/refactoring/` the refactor trail, `.ai/bugfixes/` this
+- **Registers.** `{{AI_DIR}}/regression/` is the manual click-through suites,
+  `{{AI_DIR}}/dod/` per-surface definition-of-done,
+  `{{AI_DIR}}/feature-constitution/` the feature trail (grouped by domain,
+  `<domain>/<slug>/`, rostered in its own `README.md`),
+  `{{AI_DIR}}/refactoring/` the refactor trail, `{{AI_DIR}}/bugfixes/` this
   one. Don't create a sixth.
-- **Everything in `AGENTS.md` still applies to a two-line fix** — the
-  comment policy, the Next-docs mandate, and `docs/conventions/` for the
+- **Production-only bugs.** A bug that reproduces only in a production build
+  is often a build-output gap (files the runtime reads that the build didn't
+  include) or a caching difference, not a logic error. Check that first.
+- **Everything in `CLAUDE.md` still applies to a two-line fix** — the
+  comment policy, the framework-docs mandate, and `docs/conventions/` for the
   surface you touch.
 
 ### How the repo is verified
 
 ```bash
-npm run verify
+{{VERIFY_CMD}}
 ```
 
-That is `typecheck → lint → format:check → check:circular-dependencies →
-check:class-interpolation → check:constitution-links → knip → test
-(vitest)`, in fastest-failure order.
+That is the one command that runs every quality gate. Read the `package.json`
+script (or whatever defines it) once so you know which stages it covers.
 
-Do not run the stages individually. Four of them (`test`, `lint`,
-`typecheck`, `knip`) have a `pre*` hook that runs `build:indexes`, so
-invoking them by hand rebuilds the content indexes once per command; `verify`
-is a superset and pays that cost once. Never pipe its output through `head`,
-`tail` or `grep` — run it bare and read it. Two carve-outs: single-file `npx
-vitest run <file>` during the red-green loop (a test invocation, not a
-verification), and `rtk proxy <command>` when a rewritten command's output
-looks wrong and you need the raw version.
+Do not run the stages individually — `verify` is a superset. Never pipe its
+output through `head`, `tail` or `grep` — run it bare and read it. One
+carve-out: a single-file test run during the red-green loop is a test
+invocation, not a verification.
 
-**What `verify` does not cover.** A green `verify` says nothing about
-`content:validate`, `check:fizz-served`, `check:standalone-bundle`,
-`audit:admin-yaml`, or the hydration sampler — these run in the pipeline. If
-the fix touches the surface one of them guards, document this in the user
-explainer artifact's residual-risk section ("What could still break",
-defined in The journal) rather than implying `verify` cleared it.
+**What `verify` does not cover.** Checks that run only in CI (content or
+schema validation, bundle checks, e2e) say nothing locally. If the fix
+touches a surface one of them guards, document this in the user explainer's
+residual-risk section ("What could still break", defined in The journal)
+rather than implying `verify` cleared it.
 
-**Some checks run nowhere.** `check:md-projection` is neither in `verify`
-nor under `pipelines/` (`check:fizz-orphans` runs in the PRV pipeline but is
-omitted from `verify`) — `check:md-projection` requests a running server
-rather than reading build outputs and checks HTTP status without validating
-response content. Before citing any script as the gate on a risk you are
-accepting, open it and check it is wired up **and** that it actually checks
-the thing. An ungated risk named as gated is worse than an ungated risk
-named as ungated.
+**Check that a gate actually gates.** Before citing any script as the gate on
+a risk you are accepting, open it and check it is wired up **and** that it
+actually checks the thing. An ungated risk named as gated is worse than an
+ungated risk named as ungated.
 
-**e2e is the pipeline's job.** Do not run `npm run test:e2e` locally
-unprompted — it needs a full build and a free port, and the ADO pipeline
-covers every PR. Write the spec, let the pipeline run it, and say in your
-report that it is unrun locally. If the user asks for a local run,
-`test:e2e:admin` is the cheap one. Both fail if a `next dev` server is
-already running in this directory — an environment collision, not a test
-failure, and killing the user's dev server is their call, not yours.
+**e2e may be the pipeline's job.** If the e2e suite needs a full build and CI
+runs it on every PR, don't run `{{E2E_CMD}}` locally unprompted: write the
+spec, let the pipeline run it, and say in your report that it is unrun
+locally. A suite that collides with the user's running dev server is an
+environment collision, not a test failure — killing their dev server is
+their call, not yours.
 
 ### Scope discipline
 
@@ -169,8 +150,8 @@ fix" section (defined below under The journal), so a reviewer can tell
 
 ### Comments the fix leaves behind
 
-The `AGENTS.md` comment policy applies to a two-line fix. Two shapes only:
-JSDoc on every function, and a two-line-max inline comment at the gotcha —
+The comment policy (`docs/conventions/comment-policy.md`) applies to a
+two-line fix. Two shapes only: doc comments on functions, and a two-line-max inline comment at the gotcha —
 directly above the line where correct-looking code is wrong. That inline
 comment is often the most valuable line in a bugfix diff.
 
@@ -182,10 +163,10 @@ longer in is worse than no comment.
 
 ## The journal
 
-Every bugfix leaves a written trail under `.ai/bugfixes/NNN-<slug>/`:
+Every bugfix leaves a written trail under `{{AI_DIR}}/bugfixes/NNN-<slug>/`:
 
 ```
-.ai/bugfixes/NNN-<slug>/
+{{AI_DIR}}/bugfixes/NNN-<slug>/
   root-cause.md          # what breaks, where, why — written BEFORE the fix
   explainer.html         # published artifact: the shipped fix, for the user
   <surface>-before.png   # one capture pair per affected surface
@@ -195,10 +176,10 @@ Every bugfix leaves a written trail under `.ai/bugfixes/NNN-<slug>/`:
 Two documents, not three. There is no `design.md` and no `plan.md`: a bugfix
 that needs a plan is a feature.
 
-**Picking the number:** `ls .ai/bugfixes/`, take the highest existing prefix,
+**Picking the number:** `ls {{AI_DIR}}/bugfixes/`, take the highest existing prefix,
 add one. Zero-padded, three digits, creation order. Never renumber, never
 reuse an abandoned number. The sequence is independent of
-`.ai/feature-constitution/` and of `.ai/refactoring/` — the directory says
+`{{AI_DIR}}/feature-constitution/` and of `{{AI_DIR}}/refactoring/` — the directory says
 which flow produced it.
 
 ### `root-cause.md` — the contract
@@ -216,8 +197,8 @@ one.
    makes the fix obvious, and if you cannot write it you have not found the
    cause yet.
 4. **Blast radius** — what is affected and, equally, what is not.
-   Corpus-wide counts belong here (`rg -l` over `content/`), because they
-   are why the bug did or did not wait.
+   Repo-wide counts belong here (a `grep -l` over the affected tree), because
+   they are why the bug did or did not wait.
 5. **The fix** — what changes, in behaviour terms. And what deliberately does
    **not** change: the adjacent thing you noticed and are leaving alone.
 6. **How it will be proven** — the behaviour the regression test pins, and
@@ -226,14 +207,13 @@ one.
    the measured DOM value goes here too.
 
 Numbers in this file are measurement, and measurement is welcome — "1808
-`.mdx` files under `content/` contain a tab", "8 collection roots render
-through `TwoColumnLayout`". Dated, sourced, with a command someone could
+content files contain a tab", "8 routes render through `TwoColumnLayout`". Dated, sourced, with a command someone could
 re-run. Name the behaviour that must hold and the edge that must be
 refused, then write however many tests that takes; never specify numerical
 test targets or quotas.
 
 A missing-test bug uses the same six headings. Symptom is "nothing under
-`__tests__/` reaches this code"; Mechanism is the class of regression that
+the test suite reaches this code"; Mechanism is the class of regression that
 can therefore land unseen; the Fix is the test; How it will be proven is
 *how you demonstrate the new test catches it* — write the regression, watch
 the test go red, revert the regression. A test you never saw fail proves
@@ -263,7 +243,7 @@ is one page of a series, and a page that invents its own palette reads as a
 different project. Load `artifact-design` for the reasoning behind the
 choices, not to redo them.
 
-Write it to `.ai/bugfixes/NNN-<slug>/explainer.html`, publish with the
+Write it to `{{AI_DIR}}/bugfixes/NNN-<slug>/explainer.html`, publish with the
 `Artifact` tool, and hand the user the URL. Keep the path stable across
 redeploys so the URL is stable.
 
@@ -290,8 +270,7 @@ other two are headlines: they read nicely and name nothing.
 1. **What the code did** — the prior behaviour, with real `file:line`
    references and real numbers from this repo.
 2. **Why it was wrong** — the specific failure. If a reference says
-   otherwise (a Next doc under `node_modules/next/dist/docs/`, a convention
-   doc), quote it with its locator.
+   otherwise (framework docs, a convention doc), quote it with its locator.
 3. **What changed** — the diff in prose, short enough to follow without
    opening the code. Include what you deliberately left alone.
 4. **What could still break** — the honest residual risk. Contracts touched,
@@ -313,16 +292,16 @@ definition-of-done walk quietly go missing.
 
 | # | Phase | Skill / tool | Artifact | Skip when |
 |---|---|---|---|---|
-| 1 | Reproduce | `next-dev-loop` (`/_next/mcp` + `agent-browser`) on port 3002 | `<surface>-before.png` per surface | defect has no page surface |
+| 1 | Reproduce | the running app (`{{DEV_CMD}}`) + `agent-browser` | `<surface>-before.png` per surface | defect has no page surface |
 | 2 | Find the cause | `superpowers:systematic-debugging` | a proven mechanism (`file:line` chain, failing test, or browser observation) | never |
 | 3 | Write the cause | — | `root-cause.md` | never |
 | 4 | Fix, TDD | `superpowers:test-driven-development` + `rubber-duk-tests` / `rubber-duk-e2e` (WRITE) | the fix and a regression test seen failing | never for unit fix/test; skip e2e spec if defect has no runtime surface |
-| 5 | Prove it in the app | restart `next dev`, then capture | `<surface>-after.png` per surface; `.ai/regression/` box tightened or added | skip captures if defect has no page surface; never skip `.ai/regression/` update |
-| 6 | Update the docs | `grep` | convention, gotcha, constitution README, `.ai/dod/`, `.ai/diagrams/` edits — or "none" | never |
-| 7 | Verify | `npm run verify` | exit 0, read | never |
+| 5 | Prove it in the app | restart the dev server, then capture | `<surface>-after.png` per surface; `{{AI_DIR}}/regression/` box tightened or added | skip captures if defect has no page surface; never skip `{{AI_DIR}}/regression/` update |
+| 6 | Update the docs | `grep` | convention, gotcha, constitution README, `{{AI_DIR}}/dod/`, `{{AI_DIR}}/diagrams/` edits — or "none" | never |
+| 7 | Verify | `{{VERIFY_CMD}}` | exit 0, read | never |
 | 8 | Review | `superpowers:requesting-code-review` + `superpowers:receiving-code-review` + `rubber-duk-*` | findings listed with verdicts; one commit per accepted finding | never |
 | 9 | Explain | `references/explainer-template.html` + `Artifact` | `explainer.html`, published | never |
-| 10 | Tick | — | touched `.ai/dod/` checklists walked | never (retire issue if tracked; record "no checklist" if unassigned) |
+| 10 | Tick | — | touched `{{AI_DIR}}/dod/` checklists walked | never (retire issue if tracked; record "no checklist" if unassigned) |
 | 11 | Commit and finish | `superpowers:finishing-a-development-branch` | one commit, one PR | never |
 
 ### Phase 1 — Reproduce in the running app
@@ -332,30 +311,32 @@ page — which is most of them, not just visual ones. A defect you have not
 seen with your own eyes is a defect you are guessing at, and the "after"
 proof is worthless without the "before".
 
-Get a server on 3002. Check first, start only if absent:
+Get the dev server up at {{LOCAL_URL}}. Check first, start only if absent:
 
 ```bash
-curl -sf -o /dev/null http://localhost:3002/api/health && echo up
+curl -sf -o /dev/null {{LOCAL_URL}} && echo up
 ```
 
-If it is down, start `npm run dev` as a background task — never in the
-foreground, where it blocks the session. If a server is already running on
-3002, use it as Ground rules directs without killing it or starting a
-second instance.
+If it is down, start `{{DEV_CMD}}` as a background task — never in the
+foreground, where it blocks the session. If a server is already running,
+use it without killing it or starting a second instance.
 
-Invoke the `next-dev-loop` skill and drive it from there — the component tree
-and props through `agent-browser react …`, console errors through `errors` /
-`console`, and the server's own account of the failure through `/_next/mcp`'s
-`get_errors`. Load the skill rather than reaching for the CLI from memory; its
-command surface moves. See `docs/conventions/browser-tooling.md`.
+Load the `agent-browser` skill and drive the page from there — console
+errors, DOM reads, screenshots. Load the skill rather than reaching for the
+CLI from memory; its command surface moves.
+<!-- @if profile:nextjs -->
+For Next.js, also load `next-dev-loop`: the component tree and props through
+`agent-browser react …`, and the server's own account of the failure through
+`/_next/mcp`'s `get_errors`.
+<!-- @endif -->
 
 ```bash
-agent-browser open --enable react-devtools http://localhost:3002/<route>
+agent-browser open --enable react-devtools {{LOCAL_URL}}/<route>
 agent-browser screenshot before.png
 ```
 
 Copy each capture into the bugfix directory as
-`.ai/bugfixes/NNN-<slug>/<surface>-before.png`, per the journal section.
+`{{AI_DIR}}/bugfixes/NNN-<slug>/<surface>-before.png`, per the journal section.
 Where the defect is textual, also record the
 measured value — `agent-browser eval` reading the DOM is stronger evidence
 than a picture of it, and diffable.
@@ -389,22 +370,23 @@ Where the test goes:
 
 | Kind | Home | Convention |
 |---|---|---|
-| Unit / integration | `__tests__/**` (Vitest) | `docs/conventions/test-quality.md` |
-| Browser behaviour, prod build | `e2e/**` (Playwright, port 3003) | `docs/conventions/e2e-conventions.md`, `.ai/dod/e2e-spec.md` |
-| Admin editor | `e2e-admin/**` (port 3007) | same, plus `docs/conventions/e2e-fixtures.md` |
-| Manual click-through | `.ai/regression/<domain>.md` | `.ai/regression/README.md` |
+| Unit / integration | `{{UNIT_TEST_GLOB}}` | `docs/conventions/test-quality.md` |
+<!-- @if option:agents=rubber-duk-e2e -->
+| Browser behaviour | `{{E2E_GLOB}}` | `docs/conventions/e2e-conventions.md` |
+<!-- @endif -->
+| Manual click-through | `{{AI_DIR}}/regression/<domain>.md` | `{{AI_DIR}}/regression/README.md` |
 
 A defect that was reachable through a page gets e2e coverage as well as the
 unit test: a unit test proves a function behaves, not that the page stopped
-being wrong. `rubber-duk-e2e` (WRITE) adds or extends a spec — `e2e/**` for
-public routes, `e2e-admin/**` for `/admin`, which the standalone build 404s
-— asserting the DOM contract the defect broke (`#main-content.wiki-content`
-is present, `[data-license-info]` is rendered), not a screenshot. Assert the
+being wrong. `rubber-duk-e2e` (WRITE) adds or extends a spec under
+`{{E2E_GLOB}}` asserting the DOM contract the defect broke (the wrapper
+element is present, the data attribute is rendered), not a screenshot. If
+the repo has no e2e suite, say so and rely on the unit test plus the Phase 5
+capture. Assert the
 hook the CSS keys off, because that is what actually broke. Skip only when
 the defect has no runtime surface (build tooling, types), and say that you
-skipped it and why. As specified in Ground rules § How the repo is
-verified, do not run the e2e suite locally; document in your report that it
-remains unrun locally until pipeline execution.
+skipped it and why. As Ground rules § How the repo is verified says, if CI
+owns the e2e run, document in your report that the spec is unrun locally.
 
 ### Phase 5 — Prove the defect is gone in the app
 
@@ -412,23 +394,22 @@ Same route, same observation as Phase 1, captured the same way into the
 bugfix directory. Restart the dev server first:
 
 ```bash
-# stop the background `npm run dev`, then start it again on 3002
+# stop the background `{{DEV_CMD}}`, then start it again
 ```
 
-`/_next/mcp`'s `get_compilation_issues` confirms the restarted server
-rebuilt cleanly before you read anything off the page.
+Confirm the restarted server rebuilt cleanly (no compile errors in its
+output) before you read anything off the page.
 
-A stale dev server will lie to you. HMR does not reliably rebuild everything
-a bugfix touches, and this repo caches aggressively on top of that —
-`highlightToHtml` is `'use cache'` with `cacheLife('max')`, so a rendered
-code block survives the edit that changed how it is built. A branch switch
-mid-session compounds it. If the page disagrees with what the code plainly
-does, suspect the server before you suspect the fix: prove the unit in
-isolation (`npx vitest run`, or `rtk proxy npx tsx` on a scratch script),
-then restart and re-measure. Rewriting a correct fix to satisfy a stale
+A stale dev server will lie to you. Hot reload does not reliably rebuild
+everything a bugfix touches, and any server-side cache compounds it — a
+cached render survives the edit that changed how it is built. A branch
+switch mid-session makes it worse. If the page disagrees with what the code
+plainly does, suspect the server before you suspect the fix: prove the unit
+in isolation (a single-file test run, or a scratch script), then restart and
+re-measure. Rewriting a correct fix to satisfy a stale
 render is the failure mode this paragraph exists to prevent.
 
-Then check whether `.ai/regression/<domain>.md` already has a box covering
+Then check whether `{{AI_DIR}}/regression/<domain>.md` already has a box covering
 the behaviour. If it does and the box passed while the bug was live, the box
 is too weak — tighten it as part of the fix. If the domain has no box for
 it, add one.
@@ -437,14 +418,14 @@ it, add one.
 
 Check the diff against `docs/conventions/` (the convention covering the
 surface you touched), `docs/gotchas.md` (add one if the trap generalises),
-the owning `.ai/feature-constitution/<domain>/<slug>/README.md`, and
-`.ai/dod/` if a definition-of-done item was wrong. Most bugfixes touch none,
+the owning `{{AI_DIR}}/feature-constitution/<domain>/<slug>/README.md`, and
+`{{AI_DIR}}/dod/` if a definition-of-done item was wrong. Most bugfixes touch none,
 and "none" is a valid finding — record "Doc updates: none" in the Phase 6
 task record and PR body.
 
 Most bugfixes touch no diagram either. But a fix that changes which module
 owns a behaviour, adds a module, or changes a data path affects the map a
-fresh agent reads to orient itself. Open every diagram under `.ai/diagrams/`
+fresh agent reads to orient itself. Open every diagram under `{{AI_DIR}}/diagrams/`
 whose subsystem the fix touched and verify each path, module, function and
 route it names still resolves — `grep` or `ls` them, don't trust the
 diagram's own claim. Current-state prose only: no "previously", no fix
@@ -452,7 +433,7 @@ narrative.
 
 ### Phase 7 — Verify
 
-`npm run verify` exits 0, as the verification rule in Ground rules sets
+`{{VERIFY_CMD}}` exits 0, as the verification rule in Ground rules sets
 out. Run it. Read the output. Not "should pass".
 
 ### Phase 8 — Review
@@ -500,7 +481,7 @@ Publish with the `Artifact` tool and hand the user the URL.
 
 ### Phase 10 — Satisfy the definition of done
 
-Open every `.ai/dod/` checklist whose surface the fix touched and walk
+Open every `{{AI_DIR}}/dod/` checklist whose surface the fix touched and walk
 it item by item against the diff. A **must** item is met or the fix is not
 done; an **if relevant** item is met or you state why it does not apply.
 Fix the code to earn the tick — editing the checklist so the work passes is
@@ -517,8 +498,8 @@ sit on top of it and are exempt — they answer a reviewer, so each stays
 separately readable.
 
 Then `superpowers:finishing-a-development-branch`. PR body rules:
-`.ai/resources/pr-guidelines.md`, enforced by the `ado-pr-body` hook. The
-explainer URL belongs in the PR body; `root-cause.md` does not get pasted
+`{{AI_DIR}}/resources/pr-guidelines.md`. The explainer URL belongs in the PR
+body; `root-cause.md` does not get pasted
 into it.
 
 ## Reference material
@@ -529,21 +510,21 @@ into it.
 
 ### Red flags — stop
 
-- A fix in the working tree and no `.ai/bugfixes/NNN-<slug>/root-cause.md`
+- A fix in the working tree and no `{{AI_DIR}}/bugfixes/NNN-<slug>/root-cause.md`
 - `root-cause.md` with a Location but no Mechanism — the cause is not found
   yet
 - A regression test that was never observed failing
 - A missing-test bugfix where the reintroduce-the-regression step was
   skipped
 - A bugfix directory with no `NNN-` prefix, a reused number, or a number
-  copied from `.ai/feature-constitution/`
+  copied from `{{AI_DIR}}/feature-constitution/`
 - `root-cause.md` or a task brief naming how many tests to write
-- A fix that adds a frontmatter field, a resource, a schema key or a route —
+- A fix that adds a config field, a resource, a schema key or a route —
   that is a feature
 - Two bugs in one commit, or a bugfix split across commits
 - Review findings applied without listing them and their verdicts first, or
   several findings squashed into one commit
-- `explainer.html` missing, or published before `npm run verify` exited 0
+- `explainer.html` missing, or published before `{{VERIFY_CMD}}` exited 0
 - An artifact title that is a metaphor, a pun, or a sentence that would fit
   some other bug
 - A fix claimed done without the page having been looked at, before **and**
@@ -553,9 +534,9 @@ into it.
 - An "after" capture taken without restarting the dev server
 - "Verified" claimed while a pipeline-only gate covering the touched surface
   was never named
-- Claiming done without having run `npm run verify`
-- Any verification stage run alone — `npm run lint`, `npm run typecheck`,
-  `npm run knip`, `npx eslint`, `npx tsc`
+- Claiming done without having run `{{VERIFY_CMD}}`
+- Any verification stage run alone (lint, typecheck, the whole test suite)
+  instead of `{{VERIFY_CMD}}`
 
 Any of these: stop, write the missing file, then continue.
 
@@ -574,14 +555,14 @@ Any of these: stop, write the missing file, then continue.
 | "This missing-test bug has no cause to analyse" | It has a class of regression it lets through. Name it, then prove the new test catches it by reintroducing it. |
 | "While fixing this I noticed another bug, I'll fix it too" | Two bugs, two directories, two commits, two branches. |
 | "The bug is visual, a unit test on the component is enough" | The unit test renders the component. The bug is that a route never renders it, or renders it outside the wrapper the CSS keys off. Assert the DOM contract. |
-| "`verify` is green, so the fix is verified" | `verify` never runs content validation, the Fizz scans, the standalone-bundle check, or e2e. Name what did not run. |
-| "`verify` is slow, I'll run vitest on the one file and call it done" | Single-file runs are for the red-green loop. Only `verify` claims the repo is green. |
-| "I'll run the e2e suite locally to be sure" | It needs a build and a free port, and the pipeline runs it on every PR. Write the spec; say it is unrun locally. |
-| "A dev server is in the way, I'll kill it" | Port 3002 is reserved for the user's own inspection. Use it, don't kill it. Restart the server when preparing to capture Phase 5 "after" evidence or when you have evidence it is serving stale output. |
+| "`verify` is green, so the fix is verified" | `verify` doesn't run the CI-only checks or e2e. Name what did not run. |
+| "`verify` is slow, I'll run the one test file and call it done" | Single-file runs are for the red-green loop. Only `verify` claims the repo is green. |
+| "I'll run the e2e suite locally to be sure" | If CI owns it, write the spec and say it is unrun locally. |
+| "A dev server is in the way, I'll kill it" | It's the user's. Use it, don't kill it. Restart the server when preparing to capture Phase 5 "after" evidence or when you have evidence it is serving stale output. |
 | "The unit test is green, I don't need to open the page" | The unit test proves your function. It does not prove the route calls it, or that anything changed for a reader. Open the page. |
 | "I'll capture the 'after' — the 'before' is obvious from the report" | Then you have one picture and no comparison. Capture the broken state first; after the fix it is unrecoverable without a stash. |
 | "The page still looks wrong, my fix must be incomplete" | Or the server is stale. Prove the unit in isolation first, then restart and re-measure. Do not rewrite a correct fix to satisfy a cached render. |
-| "This needs a new frontmatter field, but it's still fundamentally a bug" | A new field changes the schema contract. That is `feature-development`. Escalate. |
+| "This needs a new config field, but it's still fundamentally a bug" | A new field changes the schema contract. That is `feature-development`. Escalate. |
 | "The explainer repeats `root-cause.md`, it's redundant" | Different readers. One is the maintainer's record, one is the user's. Neither is written in the other's language. |
 | "The title is catchy, the body has the detail" | The title is what appears in a list of artifacts. Name the defect. |
 | "Naming the symbol in the title makes it ugly" | It makes it findable. `NormalizeWhitespace` is what someone will search for; "the indentation thing" is not. |

@@ -211,7 +211,9 @@ function stripBanner(text) {
 // ---------- file planning ----------
 
 function destRel(rel, tokens) {
-  const segs = posix(rel).split('/').map((s) => (s === 'dot-claude' ? '.claude' : s));
+  // Dot-folders are stored as dot-<name> so template trees never load as live
+  // config in this repo (a stored .claude/skills would be discovered).
+  const segs = posix(rel).split('/').map((s) => (s.startsWith('dot-') ? '.' + s.slice(4) : s));
   return renderTokens(segs.join('/'), tokens);
 }
 
