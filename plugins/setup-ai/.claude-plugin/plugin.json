@@ -1,0 +1,26 @@
+{
+  "name": "setup-ai",
+  "version": "0.1.0",
+  "description": "Bootstrap an agent workspace in any repo — one wizard skill that asks what to set up, then vendors and fills in template packs (working rules, hooks, review agents, dev workflows, issue tracking, tech writing), merges settings, and installs third-party skills via npx skills.",
+  "author": {
+    "name": "skurekj",
+    "email": "skurekjakub@gmail.com"
+  },
+  "keywords": [
+    "setup",
+    "bootstrap",
+    "templates",
+    "scaffold",
+    "agents",
+    "hooks",
+    "workflow"
+  ],
+  "userConfig": {
+    "autoInstallVendorSkills": {
+      "type": "boolean",
+      "title": "Auto-install vendor skills",
+      "description": "At session start, re-install missing third-party skills (npx skills) recorded in a bootstrapped repo, at most once a day. Off: only print a notice.",
+      "default": false
+    }
+  }
+}

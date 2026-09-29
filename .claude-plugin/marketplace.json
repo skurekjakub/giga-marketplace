@@ -4,27 +4,73 @@
     "name": "skurekj",
     "email": "skurekjakub@gmail.com"
   },
-  "description": "A collection of skills for agentic engineering, technical writing, and agent harness work — including scaffolded, customizable tech-writing skill templates.",
+  "description": "Plug-and-play skills for agentic engineering, research and planning, Copilot CLI and npm maintenance — plus setup-ai, a bootstrap wizard that vendors customizable agent-workspace templates (rules, hooks, review agents, workflows, tech writing) into any repo.",
   "plugins": [
     {
-      "name": "agentic-work",
-      "source": "./agentic-work",
-      "description": "Skills for designing, building, and evaluating agentic systems — agent-as-function refactoring and audits, fractal orchestrator architectures, workflow evals, skill and agent creation, task-graph planning, and autonomous loops."
+      "name": "agent-architecture",
+      "source": "./plugins/agent-architecture",
+      "description": "Design, build and audit multi-agent systems — agent-as-function orchestrators with filesystem artifact handoff, fractal orchestrator architectures, workflow evals, guided agent-family creation, and autonomous optimization loops.",
+      "category": "agents",
+      "tags": [
+        "agents",
+        "orchestrator",
+        "subagents",
+        "multi-agent",
+        "evals",
+        "autoloop"
+      ]
     },
     {
-      "name": "general",
-      "source": "./general",
-      "description": "General-purpose working skills — iterative deep research and handling files too large to read in one pass."
+      "name": "research-planning",
+      "source": "./plugins/research-planning",
+      "description": "Research and planning working skills — iterative multi-round web research, mapping your own unknown unknowns before a long task, and task-graph planning for multi-file work.",
+      "category": "research",
+      "tags": [
+        "research",
+        "planning",
+        "task-graph",
+        "unknowns",
+        "web-search"
+      ]
     },
     {
-      "name": "harnesses",
-      "source": "./harnesses",
-      "description": "Skills for working with specific agent harnesses — Copilot CLI debug log analysis, extension development, and patching."
+      "name": "copilot-cli",
+      "source": "./plugins/copilot-cli",
+      "description": "Skills for GitHub Copilot CLI — debug log analysis, extension development with @github/copilot-sdk, system-prompt patching, and writing large files without CLI timeouts.",
+      "category": "harness",
+      "tags": [
+        "copilot-cli",
+        "harness",
+        "extensions",
+        "debugging"
+      ]
     },
     {
-      "name": "tech-writing",
-      "source": "./tech-writing",
-      "description": "Scaffolds customizable tech-writing skills into your project — release notes, hotfix notes, docs-vs-source validation, and draw.io diagram authoring — filled in with your product's specifics."
+      "name": "npm-maintenance",
+      "source": "./plugins/npm-maintenance",
+      "description": "Move npm dependencies safely — fix npm audit advisories, routine minor/patch refreshes, and release-age cooldown install failures.",
+      "category": "maintenance",
+      "tags": [
+        "npm",
+        "dependencies",
+        "audit",
+        "security"
+      ]
+    },
+    {
+      "name": "setup-ai",
+      "source": "./plugins/setup-ai",
+      "description": "Bootstrap an agent workspace in any repo — one wizard skill that asks what to set up, then vendors and fills in template packs (working rules, hooks, review agents, dev workflows, issue tracking, tech writing), merges settings, and installs third-party skills via npx skills.",
+      "category": "setup",
+      "tags": [
+        "setup",
+        "bootstrap",
+        "templates",
+        "scaffold",
+        "agents",
+        "hooks",
+        "workflow"
+      ]
     }
   ]
 }

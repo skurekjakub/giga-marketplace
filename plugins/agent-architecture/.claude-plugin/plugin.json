@@ -1,0 +1,17 @@
+{
+  "name": "agent-architecture",
+  "version": "0.2.0",
+  "description": "Design, build and audit multi-agent systems — agent-as-function orchestrators with filesystem artifact handoff, fractal orchestrator architectures, workflow evals, guided agent-family creation, and autonomous optimization loops.",
+  "author": {
+    "name": "skurekj",
+    "email": "skurekjakub@gmail.com"
+  },
+  "keywords": [
+    "agents",
+    "orchestrator",
+    "subagents",
+    "multi-agent",
+    "evals",
+    "autoloop"
+  ]
+}

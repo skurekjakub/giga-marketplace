@@ -1,0 +1,16 @@
+{
+  "name": "research-planning",
+  "version": "0.2.0",
+  "description": "Research and planning working skills — iterative multi-round web research, mapping your own unknown unknowns before a long task, and task-graph planning for multi-file work.",
+  "author": {
+    "name": "skurekj",
+    "email": "skurekjakub@gmail.com"
+  },
+  "keywords": [
+    "research",
+    "planning",
+    "task-graph",
+    "unknowns",
+    "web-search"
+  ]
+}

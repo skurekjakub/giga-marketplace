@@ -1,0 +1,15 @@
+{
+  "name": "copilot-cli",
+  "version": "0.2.0",
+  "description": "Skills for GitHub Copilot CLI — debug log analysis, extension development with @github/copilot-sdk, system-prompt patching, and writing large files without CLI timeouts.",
+  "author": {
+    "name": "skurekj",
+    "email": "skurekjakub@gmail.com"
+  },
+  "keywords": [
+    "copilot-cli",
+    "harness",
+    "extensions",
+    "debugging"
+  ]
+}

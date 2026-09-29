@@ -1,9 +1,0 @@
-{
-  "name": "agentic-work",
-  "version": "0.1.0",
-  "description": "Skills for designing, building, and evaluating agentic systems — agent-as-function refactoring and audits, fractal orchestrator architectures, workflow evals, skill and agent creation, task-graph planning, and autonomous loops.",
-  "author": {
-    "name": "skurekj",
-    "email": "skurekjakub@gmail.com"
-  }
-}

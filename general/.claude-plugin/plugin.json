@@ -1,9 +1,0 @@
-{
-  "name": "general",
-  "version": "0.1.0",
-  "description": "General-purpose working skills — iterative deep research and handling files too large to read in one pass.",
-  "author": {
-    "name": "skurekj",
-    "email": "skurekjakub@gmail.com"
-  }
-}
