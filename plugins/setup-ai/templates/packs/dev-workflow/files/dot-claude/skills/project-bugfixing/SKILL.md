@@ -123,12 +123,14 @@ a risk you are accepting, open it and check it is wired up **and** that it
 actually checks the thing. An ungated risk named as gated is worse than an
 ungated risk named as ungated.
 
+<!-- @if option:agents=rubber-duk-e2e -->
 **e2e may be the pipeline's job.** If the e2e suite needs a full build and CI
 runs it on every PR, don't run `{{E2E_CMD}}` locally unprompted: write the
 spec, let the pipeline run it, and say in your report that it is unrun
 locally. A suite that collides with the user's running dev server is an
 environment collision, not a test failure — killing their dev server is
 their call, not yours.
+<!-- @endif -->
 
 ### Scope discipline
 
@@ -376,17 +378,23 @@ Where the test goes:
 <!-- @endif -->
 | Manual click-through | `{{AI_DIR}}/regression/<domain>.md` | `{{AI_DIR}}/regression/README.md` |
 
+<!-- @if option:agents=rubber-duk-e2e -->
 A defect that was reachable through a page gets e2e coverage as well as the
 unit test: a unit test proves a function behaves, not that the page stopped
 being wrong. `rubber-duk-e2e` (WRITE) adds or extends a spec under
 `{{E2E_GLOB}}` asserting the DOM contract the defect broke (the wrapper
-element is present, the data attribute is rendered), not a screenshot. If
-the repo has no e2e suite, say so and rely on the unit test plus the Phase 5
-capture. Assert the
-hook the CSS keys off, because that is what actually broke. Skip only when
+element is present, the data attribute is rendered), not a screenshot. Assert
+the hook the CSS keys off, because that is what actually broke. Skip only when
 the defect has no runtime surface (build tooling, types), and say that you
 skipped it and why. As Ground rules § How the repo is verified says, if CI
 owns the e2e run, document in your report that the spec is unrun locally.
+<!-- @endif -->
+<!-- @if !option:agents=rubber-duk-e2e -->
+The repo has no e2e agent installed: a defect reachable through a page is
+pinned by the unit test plus the Phase 5 before/after capture of the DOM
+contract the defect broke (the wrapper element is present, the data attribute
+is rendered). Say in the report that no e2e spec was written.
+<!-- @endif -->
 
 ### Phase 5 — Prove the defect is gone in the app
 

@@ -219,3 +219,15 @@ test('every @if/@endif marker in the templates sits on its own line', () => {
   // Assert
   assert.deepEqual(bad, []);
 });
+
+test('without an e2e agent, no pack asks for e2e tokens', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  const { E2E_GLOB, E2E_CMD, ...tokens } = VALUES.tokens;
+  fs.writeFileSync(repo.values, JSON.stringify({ tokens, options: { ...VALUES.options, agents: ['rubber-duk-review', 'rubber-duk-tests'] } }));
+  // Act
+  const res = engine('plan', '--dest', repo.dir, '--packs', 'baseline,review-agents,dev-workflow', '--values', repo.values);
+  // Assert
+  assert.deepEqual(res.missingTokens.map((m) => `${m.token} (${m.firstUsedIn})`), []);
+});

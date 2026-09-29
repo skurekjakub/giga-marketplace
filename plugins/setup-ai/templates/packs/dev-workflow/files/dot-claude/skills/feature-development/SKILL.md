@@ -146,7 +146,9 @@ point at the constitution folder.
 | 2 | Plan | `superpowers:writing-plans` | `plan.md` (or `plan-track-*.md`) | never |
 | 3 | Isolate | `superpowers:using-git-worktrees` | — | already on an isolated feature branch or worktree |
 | 4 | Execute | `superpowers:subagent-driven-development` (or `superpowers:executing-plans`) | commits on the branch | never |
-| 4.5 | e2e coverage | `rubber-duk-e2e` (WRITE) | specs under `{{E2E_GLOB}}` | feature has no user-facing behaviour, or the repo has no e2e suite |
+<!-- @if option:agents=rubber-duk-e2e -->
+| 4.5 | e2e coverage | `rubber-duk-e2e` (WRITE) | specs under `{{E2E_GLOB}}` | feature has no user-facing behaviour |
+<!-- @endif -->
 | 5 | Smoke test | the running app (`{{DEV_CMD}}`) + `agent-browser` | recorded evidence: route, observed behaviour, screenshot | no observable runtime surface |
 | 6 | Review | `superpowers:requesting-code-review` + `superpowers:receiving-code-review` + `rubber-duk-*` | findings fixed or rebutted | never |
 | 7 | Finish | `{{AI_DIR}}/resources/skills/explainer-template.html` + `Artifact` + `superpowers:finishing-a-development-branch` | `README.md` (+ updated `{{AI_DIR}}/diagrams/*` if affected) + `explainer.html`, published | never |
