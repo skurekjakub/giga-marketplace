@@ -1,7 +1,7 @@
 ---
 name: codebase-analysis
 description: >-
-  Point it at a part of {{PROJECT_NAME}} — a directory, a module, a route, a subsystem, or a theme such as "performance", "caching", "payload size", "build time" — and it produces one `{{AI_DIR}}/followups/<domain>/<slug>.md` per finding, each with a verified problem statement, a measured cost, resolution options with a recommendation, and a solution section an implementer can pick up without re-research. It never edits code. Use it whenever the user says "analyze", "audit X for improvements", "look for perf wins in", "what's wrong with lib/…", "find tech debt / smells / dead weight in", "sweep this area", "poke around X and write up what you find", "turn findings into followups", "health check", or asks what could be improved in an area — even when they never say "followup". Also use it when a review or a feature run surfaces side findings the user wants written up properly. Do not use it to review a pending diff (rubber-duk-review), to execute a refactor (codebase-refactoring) or a feature (feature-development); this skill ends when the follow-up files are written and recapped.
+  Use when the user wants an area of {{PROJECT_NAME}} analyzed and written up without changing code — "analyze", "audit X for improvements", "look for perf wins in", "what's wrong with …", "find tech debt / smells / dead weight in", "sweep this area", "poke around X and write up what you find", "turn findings into followups", "health check" — or when a review or feature run surfaced side findings that should become follow-up files. Not for reviewing a pending diff (rubber-duk-review), executing a refactor (codebase-refactoring) or building a feature (feature-development).
 ---
 
 # Codebase analysis
@@ -65,8 +65,8 @@ rather than implemented in place.
 ## The journal
 
 Each finding is one file at `{{AI_DIR}}/followups/<domain>/<slug>.md`. The domains
-are the ones `{{AI_DIR}}/followups/README.md` rosters — the seven feature domains of
-`{{AI_DIR}}/feature-constitution/` plus `cross-cutting/` — and that README carries
+are the ones `{{AI_DIR}}/followups/README.md` rosters — the feature domains of
+`{{AI_DIR}}/feature-constitution/README.md` plus `cross-cutting/` — and that README carries
 the naming rule, the file shape, and what is not a follow-up. `ls
 {{AI_DIR}}/followups/<domain>/` shows worked examples in the area under sweep.
 

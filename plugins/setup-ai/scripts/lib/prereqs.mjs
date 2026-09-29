@@ -79,8 +79,11 @@ export function prereqStatus(all, order, ctx, dest) {
   const list = installedPlugins();
   const markets = knownMarketplaces();
   const plugins = requiredPlugins(all, order, ctx).map((p) => {
-    const hit = list?.find((i) => i.id === p.id);
-    const status = list === null ? 'unknown' : hit ? (hit.enabled ? 'installed' : 'disabled') : 'missing';
+    // `plugin list --json` has reported both { id, enabled } and
+    // { name, marketplace, status } shapes; accept either.
+    const hit = list?.find((i) => i.id === p.id || (i.name && `${i.name}@${i.marketplace}` === p.id));
+    const enabled = hit && (hit.enabled ?? hit.status === 'enabled');
+    const status = list === null ? 'unknown' : hit ? (enabled ? 'installed' : 'disabled') : 'missing';
     const marketplaceKnown = markets === null ? null : markets.includes(p.id.split('@')[1]);
     return { id: p.id, why: p.why, requiredBy: p.requiredBy, status, marketplaceKnown, marketplace: p.marketplace };
   });

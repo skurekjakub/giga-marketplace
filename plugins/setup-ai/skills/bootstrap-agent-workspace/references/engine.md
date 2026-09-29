@@ -8,7 +8,7 @@ Every command prints one JSON document on stdout; `ok: false` carries `error`.
 | `catalog` | nothing | `packs[]` (name, title, summary, version, requires, recommends, options, tokens, todo), `globalTokens` |
 | `detect` | nothing | `packageManager`, `scripts`, `flags` (next, react, vue, svelte, vite, vitest, jest, playwright, tailwind, typescript, eslint, prettier, ado, github, npmrcCooldown, claudeMd, agentsMd, claudeSettings, installed, verifyScript), `tokens` (inferred), `options` (profile), `suggestedPacks` |
 | `plan` | nothing | `packs` (dependency order), `pulledIn`, `recommended`, `options`, `optionDefaults`, `missingOptions`, `prerequisites` {plugins, vendorSkills, clis, env, node, allSatisfied}, `missingTokens` [{token, prompt, default, inferred, firstUsedIn}], `manualSteps`, `files` [{dest, action}], `conflicts` |
-| `prereqs` | project settings (plugins), `.claude/skills/` (vendor skills), `skills-lock.json` | `results` per step, `prerequisites` after |
+| `prereqs` | project settings (plugins), `.claude/skills/` (vendor skills), `skills-lock.json` — nothing with `--dry-run` | `results` per step (the commands, with `--dry-run`), `prerequisites` after |
 | `render` | the pack files, appends, `.claude/settings.json`, `.mcp.json`, `.claude/setup-ai.json` | `written`, `unchanged`, `conflicts`, `appended`, `settings`, `mcp`, `errors`, `todos`, `manualSteps` |
 | `vendor check` / `install` / `restore` | `.claude/skills/`, `skills-lock.json` | per-skill status / per-source results |
 | `session-check` | nothing (a rate-limit stamp in the plugin data dir when auto-restoring) | a SessionStart `additionalContext` notice, or nothing |

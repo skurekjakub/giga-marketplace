@@ -21,9 +21,12 @@ file_path=$(echo "$input" | jq -r '.tool_input.file_path // ""' 2>/dev/null || e
 
 # Only this project's own files are formatted. Sibling checkouts or worktrees
 # opened in the same session may follow different formatting rules.
+# On Windows both paths may arrive as C:\… — compare them with forward slashes
+# and a lower-cased drive letter so the prefix match holds.
+norm() { local p="${1//\\//}"; printf '%s' "$(printf '%s' "${p:0:1}" | tr '[:upper:]' '[:lower:]')${p:1}"; }
 if [ -n "${CLAUDE_PROJECT_DIR:-}" ]; then
-    case "$file_path" in
-        "$CLAUDE_PROJECT_DIR"/*) ;;
+    case "$(norm "$file_path")" in
+        "$(norm "$CLAUDE_PROJECT_DIR")"/*) ;;
         *) exit 0 ;;
     esac
 fi

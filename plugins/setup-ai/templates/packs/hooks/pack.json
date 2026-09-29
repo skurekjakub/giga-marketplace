@@ -1,6 +1,6 @@
 {
   "name": "hooks",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "title": "Guard-rail hooks",
   "summary": "Bash hooks wired into .claude/settings.json: block destructive git/rm commands, steer to one verify command, format on edit, re-inject project context after compaction, periodic rule reminders, done notifications, ADO PR body limits.",
   "requires": {
@@ -175,5 +175,11 @@
         }
       ]
     }
-  }
+  },
+  "appends": [
+    {
+      "to": ".gitattributes",
+      "text": "# setup-ai hooks are bash scripts; CRLF breaks them.\n.claude/hooks/* text eol=lf"
+    }
+  ]
 }

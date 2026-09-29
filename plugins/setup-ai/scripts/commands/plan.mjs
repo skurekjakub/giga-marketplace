@@ -9,10 +9,10 @@ import { fileAction, planFor } from '../lib/context.mjs';
  * manual steps and the file actions a render would take. Writes nothing.
  */
 export function cmdPlan(args) {
-  const { all, order, pulledIn, recommended, ctx, missingTokens } = planFor(args);
+  const { all, order, pulledIn, recommended, ctx, missingTokens, invalidOptions } = planFor(args);
   const prerequisites = prereqStatus(all, order, ctx, ctx.dest);
   let files = [];
-  if (!missingTokens.length) {
+  if (!missingTokens.length && !invalidOptions.length) {
     const record = readJson(path.join(ctx.dest, RECORD), null);
     files = buildFiles(all, order, ctx).map((f) => ({ pack: f.pack, dest: f.dest, action: fileAction(ctx.dest, f, record, args) }));
   }
@@ -27,6 +27,7 @@ export function cmdPlan(args) {
     missingOptions: Object.keys(options).filter((k) => !(k in ctx.options)),
     prerequisites,
     missingTokens,
+    invalidOptions,
     manualSteps: packTodos(all, order, ctx),
     files,
     conflicts: files.filter((f) => f.action === 'conflict').map((f) => f.dest),

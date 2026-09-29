@@ -207,7 +207,7 @@ one.
    the measured DOM value goes here too.
 
 Numbers in this file are measurement, and measurement is welcome — "1808
-content files contain a tab", "8 routes render through `TwoColumnLayout`". Dated, sourced, with a command someone could
+content files contain a tab", "8 routes render through `PageLayout`". Dated, sourced, with a command someone could
 re-run. Name the behaviour that must hold and the edge that must be
 refused, then write however many tests that takes; never specify numerical
 test targets or quotas.
@@ -225,8 +225,8 @@ One before/after pair per affected surface, not one pair per bugfix. A fix
 that touches two components, two routes, or two render modes needs a pair
 for each — a single pair proves one of them and silently asserts the rest.
 Name them for the surface so the pairing is unambiguous
-(`codelink-before.png` / `codelink-after.png`, `codeblock-before.png` /
-`codeblock-after.png`). Both shots of a pair are the same route, same scroll
+(`checkout-before.png` / `checkout-after.png`, `cart-badge-before.png` /
+`cart-badge-after.png`). Both shots of a pair are the same route, same scroll
 position, same viewport — a "before" at the top of the page and an "after"
 at the block proves nothing. They live in the bugfix directory next to
 `root-cause.md`; a screenshot in `/tmp` is gone by the next session.
@@ -254,11 +254,11 @@ commas, conjunctions ("so"), or metaphors.
 
 | | |
 |---|---|
-| ✅ | `Align linked codeblock content indent` |
-| ✅ | `Collection roots missing wiki-content wrapper` |
-| ✅ | `excludeHeadings ignored on inline TableOfContents` |
-| ❌ | `CodeLink kept the source file's class-member indent, so every sliced C# region rendered 4 columns in` |
-| ❌ | `Collection roots got their styling back` |
+| ✅ | `Checkout total ignores discount codes` |
+| ✅ | `Settings page missing save confirmation` |
+| ✅ | `maxItems ignored on inline RecentOrders` |
+| ❌ | `The price formatter kept the old rounding mode, so every order over 100 items was a cent off at checkout` |
+| ❌ | `Checkout got its discounts back` |
 | ❌ | `A wrapper that went missing` |
 
 The first reject is a whole sentence with the mechanism and the measurement

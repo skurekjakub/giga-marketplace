@@ -83,9 +83,7 @@ Look for these fields (the user will typically paste a full issue tracker ticket
 
 ### 2. Pick the right category
 
-The category **must** come from the official categories list. Read the full list from `{{CATEGORIES_FILE_PATH}}` — relative to the **repository root**, not to this skill folder. Common examples:
-
-Admin UI, API, Content items, Email, Forms, Pages, Performance, Search, Security, Workflow
+The category **must** come from the official categories list. Read the full list from `{{CATEGORIES_FILE_PATH}}` — relative to the **repository root**, not to this skill folder. Never invent a category that isn't in that file.
 
 If the ticket has a category field, use it directly (it should already match). If not, choose the most specific matching category from the list.
 

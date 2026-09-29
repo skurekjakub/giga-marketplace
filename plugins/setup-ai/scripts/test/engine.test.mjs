@@ -127,3 +127,95 @@ test('render refuses while tokens are missing', (t) => {
   assert.ok(res.missingTokens.some((m) => m.token === 'AI_DIR'));
   assert.equal(fs.existsSync(path.join(repo.dir, 'CLAUDE.md')), false);
 });
+
+test('adding a pack keeps earlier requirements in the record and sees installed packs', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  engine('render', '--dest', repo.dir, '--packs', 'review-agents', '--values', repo.values);
+  // Act
+  engine('render', '--dest', repo.dir, '--packs', 'baseline', '--values', repo.values);
+  // Assert
+  const rec = JSON.parse(fs.readFileSync(path.join(repo.dir, '.claude', 'setup-ai.json'), 'utf8'));
+  assert.ok(rec.plugins.includes('research-planning@giga-marketplace'));
+  assert.ok(rec.vendorSkills.some((v) => v.skill === 'web-design-guidelines'));
+  const rules = fs.readFileSync(path.join(repo.dir, '.agents', 'agent-working-rules.md'), 'utf8');
+  assert.match(rules, /comment-policy\.md` is the policy/);
+});
+
+test('placeholder-shaped token values count as missing', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  fs.writeFileSync(repo.values, JSON.stringify({ ...VALUES, tokens: { ...VALUES.tokens, JIRA_PROJECT: 'CHANGE_ME', PRODUCT_NAME: 'TODO_PRODUCT_NAME' } }));
+  // Act
+  const res = engine('plan', '--dest', repo.dir, '--packs', 'issue-tracking,tech-writing', '--values', repo.values);
+  // Assert
+  assert.deepEqual(res.missingTokens.map((m) => m.token).sort(), ['JIRA_PROJECT', 'PRODUCT_NAME']);
+  assert.deepEqual(res.files, []);
+});
+
+test('an option value outside its choices is reported and blocks render', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  fs.writeFileSync(repo.values, JSON.stringify({ ...VALUES, options: { ...VALUES.options, hooks: ['block-destructive-bsh'] } }));
+  // Act
+  const plan = engine('plan', '--dest', repo.dir, '--packs', 'hooks', '--values', repo.values);
+  const render = engine('render', '--dest', repo.dir, '--packs', 'hooks', '--values', repo.values);
+  // Assert
+  assert.equal(plan.invalidOptions[0].value, 'block-destructive-bsh');
+  assert.equal(render.ok, false);
+  assert.equal(fs.existsSync(path.join(repo.dir, '.claude', 'hooks')), false);
+});
+
+test('a CRLF checkout of an unedited file is not a conflict on update', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  engine('render', '--dest', repo.dir, '--packs', 'review-agents', '--values', repo.values);
+  const agent = path.join(repo.dir, '.claude', 'agents', 'rubber-duk-review.md');
+  fs.writeFileSync(agent, fs.readFileSync(agent, 'utf8').replace(/\n/g, '\r\n'));
+  // Act
+  const res = engine('render', '--dest', repo.dir, '--packs', 'review-agents', '--values', repo.values, '--update');
+  // Assert
+  assert.deepEqual(res.conflicts, []);
+});
+
+test('condition grammar: ! negates, + ands, | ors', async () => {
+  // Arrange
+  const { evalCond } = await import('../lib/conditions.mjs');
+  const ctx = { packs: ['hooks'], options: { profile: 'nextjs', agents: ['a', 'b'] }, detect: { flags: { vitest: true } } };
+  // Act & Assert
+  assert.equal(evalCond('pack:hooks', ctx), true);
+  assert.equal(evalCond('!pack:hooks', ctx), false);
+  assert.equal(evalCond('option:agents=a+detect:vitest', ctx), true);
+  assert.equal(evalCond('option:agents=c+detect:vitest', ctx), false);
+  assert.equal(evalCond('option:agents=c|profile:nextjs', ctx), true);
+  assert.equal(evalCond('option:agents', ctx), true);
+  assert.throws(() => evalCond('nonsense:x', ctx), /bad condition term/);
+});
+
+test('deepMerge keeps user scalars, merges objects and dedupes arrays', async () => {
+  // Arrange
+  const { deepMerge } = await import('../lib/settings.mjs');
+  const target = { model: 'mine', permissions: { allow: ['a'] }, hooks: { Stop: [{ x: 1 }] } };
+  // Act
+  deepMerge(target, { model: 'theirs', permissions: { allow: ['a', 'b'] }, hooks: { Stop: [{ x: 1 }, { y: 2 }] }, newKey: true });
+  // Assert
+  assert.deepEqual(target, { model: 'mine', permissions: { allow: ['a', 'b'] }, hooks: { Stop: [{ x: 1 }, { y: 2 }] }, newKey: true });
+});
+
+test('every @if/@endif marker in the templates sits on its own line', () => {
+  // Arrange
+  const packs = path.join(path.dirname(ENGINE), '..', 'templates', 'packs');
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
+  const own = /^\s*(<!--|#)\s*@(if\s+\S.*|endif)\s*(-->)?\s*$/;
+  // Act
+  const bad = walk(packs).flatMap((f) => fs.readFileSync(f, 'utf8').split('\n')
+    .map((line, i) => [line, i + 1])
+    .filter(([line]) => /@(if|endif)\b/.test(line) && /<!--\s*@|#\s*@(if|endif)/.test(line) && !own.test(line))
+    .map(([, n]) => `${path.relative(packs, f)}:${n}`));
+  // Assert
+  assert.deepEqual(bad, []);
+});

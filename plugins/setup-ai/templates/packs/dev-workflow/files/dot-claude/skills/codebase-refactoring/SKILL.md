@@ -121,7 +121,7 @@ Read `{{AI_DIR}}/feature-constitution/` for design context on whatever you're
 moving; updates to the parent feature's `README.md` happen in Phase 7,
 documenting the final shape — don't add refactor journal artifacts there.
 Constitutions group by domain — `{{AI_DIR}}/feature-constitution/<domain>/<slug>/`,
-seven domains, rostered in `{{AI_DIR}}/feature-constitution/README.md`. Start
+domains rostered in `{{AI_DIR}}/feature-constitution/README.md`. Start
 there, not by globbing: one subsystem's refactor usually touches one
 domain's constitutions, and the roster finds every one in its blast radius
 fastest.

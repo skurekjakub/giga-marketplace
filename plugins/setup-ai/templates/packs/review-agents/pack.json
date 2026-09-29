@@ -3,19 +3,83 @@
   "version": "0.1.0",
   "title": "Review & build agents (rubber-duk-*)",
   "summary": "Adversarial subagents in .claude/agents: code reviewer, security auditor, backend and frontend builders, unit-test and e2e specialists — stack-neutral bodies plus a per-repo stack profile and starter convention docs (comment policy, test quality, test layout, e2e conventions).",
-  "recommends": ["baseline", "hooks"],
+  "recommends": [
+    "baseline",
+    "hooks"
+  ],
   "requires": {
     "plugins": [
-      { "id": "research-planning@giga-marketplace", "marketplace": { "name": "giga-marketplace", "repo": "skurekjakub/giga-marketplace" }, "why": "Every agent grounds its findings with the research-planning:iterative-research skill." },
-      { "id": "frontend-design@claude-plugins-official", "marketplace": { "name": "claude-plugins-official", "repo": "anthropics/claude-plugins-official" }, "when": "option:agents=rubber-duk-frontend", "why": "rubber-duk-frontend loads frontend-design:frontend-design as its aesthetic spine." },
-      { "id": "superpowers@claude-plugins-official", "marketplace": { "name": "claude-plugins-official", "repo": "anthropics/claude-plugins-official" }, "when": "option:agents=rubber-duk-e2e", "why": "rubber-duk-e2e heals failing specs with superpowers:systematic-debugging." }
+      {
+        "id": "research-planning@giga-marketplace",
+        "marketplace": {
+          "name": "giga-marketplace",
+          "repo": "skurekjakub/giga-marketplace"
+        },
+        "why": "Every agent grounds its findings with the research-planning:iterative-research skill."
+      },
+      {
+        "id": "frontend-design@claude-plugins-official",
+        "marketplace": {
+          "name": "claude-plugins-official",
+          "repo": "anthropics/claude-plugins-official"
+        },
+        "when": "option:agents=rubber-duk-frontend",
+        "why": "rubber-duk-frontend loads frontend-design:frontend-design as its aesthetic spine."
+      },
+      {
+        "id": "superpowers@claude-plugins-official",
+        "marketplace": {
+          "name": "claude-plugins-official",
+          "repo": "anthropics/claude-plugins-official"
+        },
+        "when": "option:agents=rubber-duk-e2e",
+        "why": "rubber-duk-e2e heals failing specs with superpowers:systematic-debugging."
+      }
     ],
     "vendorSkills": [
-      { "source": "vercel-labs/agent-skills", "skills": ["web-design-guidelines"], "when": "option:agents=rubber-duk-frontend", "why": "rubber-duk-frontend checks UI against the Web Interface Guidelines." },
-      { "source": "vercel-labs/agent-skills", "skills": ["vercel-react-best-practices", "vercel-composition-patterns"], "when": "detect:react", "why": "The stack profile tells reviewers to load the React best-practice skills." },
-      { "source": "vercel/next.js", "skills": ["next-dev-loop", "next-cache-components-optimizer", "next-cache-components-adoption"], "when": "profile:nextjs", "why": "The Next.js stack profile's framework skills." },
-      { "source": "antfu/skills", "skills": ["vitest"], "when": "detect:vitest+option:agents=rubber-duk-tests", "why": "rubber-duk-tests loads the vitest skill for runner semantics." },
-      { "source": "vercel-labs/agent-browser", "skills": ["agent-browser"], "when": "option:agents=rubber-duk-frontend|option:agents=rubber-duk-e2e", "why": "Browser verification when the Playwright MCP server isn't configured." }
+      {
+        "source": "vercel-labs/agent-skills",
+        "skills": [
+          "web-design-guidelines"
+        ],
+        "when": "option:agents=rubber-duk-frontend",
+        "why": "rubber-duk-frontend checks UI against the Web Interface Guidelines."
+      },
+      {
+        "source": "vercel-labs/agent-skills",
+        "skills": [
+          "vercel-react-best-practices",
+          "vercel-composition-patterns"
+        ],
+        "when": "detect:react",
+        "why": "The stack profile tells reviewers to load the React best-practice skills."
+      },
+      {
+        "source": "vercel/next.js",
+        "skills": [
+          "next-dev-loop",
+          "next-cache-components-optimizer",
+          "next-cache-components-adoption"
+        ],
+        "when": "profile:nextjs",
+        "why": "The Next.js stack profile's framework skills."
+      },
+      {
+        "source": "antfu/skills",
+        "skills": [
+          "vitest"
+        ],
+        "when": "detect:vitest+option:agents=rubber-duk-tests",
+        "why": "rubber-duk-tests loads the vitest skill for runner semantics."
+      },
+      {
+        "source": "vercel-labs/agent-browser",
+        "skills": [
+          "agent-browser"
+        ],
+        "when": "option:agents=rubber-duk-frontend|option:agents=rubber-duk-e2e",
+        "why": "Browser verification when the Playwright MCP server isn't configured."
+      }
     ]
   },
   "options": {
@@ -23,12 +87,42 @@
       "type": "multi",
       "prompt": "Which agents should be installed?",
       "choices": [
-        { "value": "rubber-duk-review", "label": "rubber-duk-review", "description": "Hostile read-only code reviewer (conventions, anti-patterns, comments, eager-fail, test gaps).", "default": true },
-        { "value": "rubber-duk-auditor", "label": "rubber-duk-auditor", "description": "Read-only security auditor (CSP, secrets, trust boundaries, cookies, supply chain).", "default": true },
-        { "value": "rubber-duk-backend", "label": "rubber-duk-backend", "description": "Builds and reviews server-side / non-UI changes.", "default": true },
-        { "value": "rubber-duk-frontend", "label": "rubber-duk-frontend", "description": "Builds and reviews UI against the Web Interface Guidelines + frontend-design.", "defaultWhen": "detect:react|detect:vue|detect:svelte" },
-        { "value": "rubber-duk-tests", "label": "rubber-duk-tests", "description": "Writes and audits unit/integration tests (mutation-resistant).", "defaultWhen": "detect:vitest|detect:jest" },
-        { "value": "rubber-duk-e2e", "label": "rubber-duk-e2e", "description": "Writes, heals and audits e2e specs (E1–E7).", "defaultWhen": "detect:playwright" }
+        {
+          "value": "rubber-duk-review",
+          "label": "rubber-duk-review",
+          "description": "Hostile read-only code reviewer (conventions, anti-patterns, comments, eager-fail, test gaps).",
+          "default": true
+        },
+        {
+          "value": "rubber-duk-auditor",
+          "label": "rubber-duk-auditor",
+          "description": "Read-only security auditor (CSP, secrets, trust boundaries, cookies, supply chain).",
+          "default": true
+        },
+        {
+          "value": "rubber-duk-backend",
+          "label": "rubber-duk-backend",
+          "description": "Builds and reviews server-side / non-UI changes.",
+          "default": true
+        },
+        {
+          "value": "rubber-duk-frontend",
+          "label": "rubber-duk-frontend",
+          "description": "Builds and reviews UI against the Web Interface Guidelines + frontend-design.",
+          "defaultWhen": "detect:react|detect:vue|detect:svelte"
+        },
+        {
+          "value": "rubber-duk-tests",
+          "label": "rubber-duk-tests",
+          "description": "Writes and audits unit/integration tests (mutation-resistant).",
+          "defaultWhen": "detect:vitest|detect:jest"
+        },
+        {
+          "value": "rubber-duk-e2e",
+          "label": "rubber-duk-e2e",
+          "description": "Writes, heals and audits e2e specs (E1–E7).",
+          "defaultWhen": "detect:playwright"
+        }
       ]
     },
     "profile": {
@@ -37,8 +131,16 @@
       "defaultFrom": "detect",
       "key": "profile",
       "choices": [
-        { "value": "nextjs", "label": "Next.js / React", "description": "Next.js App Router, Cache Components, React 19, TypeScript, Tailwind 4 hunt lists and skills." },
-        { "value": "generic", "label": "Generic", "description": "A skeleton with fill-in sections for any stack." }
+        {
+          "value": "nextjs",
+          "label": "Next.js / React",
+          "description": "Next.js App Router, Cache Components, React 19, TypeScript, Tailwind 4 hunt lists and skills."
+        },
+        {
+          "value": "generic",
+          "label": "Generic",
+          "description": "A skeleton with fill-in sections for any stack."
+        }
       ]
     }
   },
@@ -49,8 +151,6 @@
     "dot-claude/agents/rubber-duk-frontend.md": "option:agents=rubber-duk-frontend",
     "dot-claude/agents/rubber-duk-tests.md": "option:agents=rubber-duk-tests",
     "dot-claude/agents/rubber-duk-e2e.md": "option:agents=rubber-duk-e2e",
-    "docs/conventions/test-quality.md": "option:agents=rubber-duk-tests",
-    "docs/conventions/test-layout.md": "option:agents=rubber-duk-tests",
     "docs/conventions/e2e-conventions.md": "option:agents=rubber-duk-e2e"
   }
 }

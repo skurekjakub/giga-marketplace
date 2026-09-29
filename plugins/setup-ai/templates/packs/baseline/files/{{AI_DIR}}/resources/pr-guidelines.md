@@ -1,8 +1,11 @@
 # Pull request guidelines
 
-> **Adapt me.** The `ado-pr-body` hook injects this file into context every
-> time an agent creates or updates an Azure DevOps pull request. Keep it short:
-> it is read on every call.
+> **Adapt me.** Agents follow this file whenever they open or update a pull
+> request. Keep it short.
+<!-- @if option:hooks=ado-pr-body -->
+> The `ado-pr-body` hook also injects it on every Azure DevOps PR create/update
+> call and blocks bodies over the API's limit.
+<!-- @endif -->
 
 - **Title:** `<ISSUE-KEY> - <title>` when a tracker issue is associated;
   otherwise a plain imperative title.

@@ -20,9 +20,14 @@ Before writing anything, determine where the feature information will come from.
 
 ### If the user provides a source path or commit
 
+<!-- @if option:writingSkills=docs-source-validation -->
 1. Use the `docs-source-validation` skill.
+<!-- @endif -->
 
-2. **Read the implementation.** Use the path, commit hash, or branch the user provided. Explore the relevant source files — read class definitions, public APIs, method implementations, and configuration. Use the source navigation reference from the `docs-source-validation` skill (`references/solution-map.md`) if you need to locate related code.
+2. **Read the implementation.** Use the path, commit hash, or branch the user provided. Explore the relevant source files — read class definitions, public APIs, method implementations, and configuration.
+<!-- @if option:writingSkills=docs-source-validation -->
+   Use the source navigation reference from the `docs-source-validation` skill (`references/solution-map.md`) if you need to locate related code.
+<!-- @endif -->
 
 3. **Extract the user-facing behavior.** From the source code, identify:
    - What capability is being added or changed

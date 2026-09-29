@@ -55,9 +55,12 @@ export function detect(dest) {
     verifyScript: Boolean(verify),
   };
 
+  // Without an origin/HEAD, an existing main/master beats the checked-out
+  // branch, which is often a feature branch or a worktree's branch.
+  const localBranch = ['main', 'master'].find((b) => git(['rev-parse', '--verify', '--quiet', `refs/heads/${b}`]));
   const tokens = {
     PROJECT_NAME: pkg?.name?.replace(/^@[^/]+\//, '') || path.basename(path.resolve(dest)),
-    DEFAULT_BRANCH: originHead || git(['branch', '--show-current']) || 'main',
+    DEFAULT_BRANCH: originHead || localBranch || git(['branch', '--show-current']) || 'main',
     AI_DIR: '.ai',
   };
   if (pm) {

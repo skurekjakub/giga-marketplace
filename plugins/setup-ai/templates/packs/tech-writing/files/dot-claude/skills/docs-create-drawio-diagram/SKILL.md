@@ -58,8 +58,8 @@ every other asset tag resolves against (see `{{MARKDOWN_SYNTAX_REF}}`).
 Create the directory if it doesn't exist. Adapt this section if your docs repo
 uses a different asset-path convention.
 
-**Source page:** `content/documentation/guides/authentication/implement-single-sign-on.mdx`
-**Asset:** `{{ASSETS_ROOT}}/documentation/implement-single-sign-on/sso-login-flow.drawio.svg`
+**Source page:** `docs/guides/authentication/single-sign-on.md`
+**Asset:** `{{ASSETS_ROOT}}/guides/single-sign-on/sso-login-flow.drawio.svg`
 
 ## Before drawing anything
 

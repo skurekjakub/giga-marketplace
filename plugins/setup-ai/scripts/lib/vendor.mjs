@@ -7,9 +7,10 @@ export const vendorSkillPresent = (dest, skill) => exists(path.join(dest, '.clau
 
 // --copy writes real folders into .claude/skills instead of links into
 // .agents/skills (junctions on Windows), so the committed repo is portable.
-function npxSkillsAdd(dest, source, skills) {
+function npxSkillsAdd(dest, source, skills, dry) {
   const env = { ...process.env, DISABLE_TELEMETRY: '1', DO_NOT_TRACK: '1' };
   const argv = ['-y', 'skills', 'add', source, '--skill', ...skills, '-a', 'claude-code', '-y', '--copy'];
+  if (dry) return { source, skills, ok: true, dryRun: true, command: `npx ${argv.join(' ')}` };
   const r = run('npx', argv, { cwd: dest, env });
   return { source, skills, ok: r.code === 0, command: `npx ${argv.join(' ')}`, stderr: r.code === 0 ? undefined : r.stderr.slice(-2000) };
 }
@@ -25,15 +26,16 @@ function groupBySource(items) {
 
 /**
  * Installs `{ source, skill }` items with `npx skills`, one call per source.
+ * With `dry`, returns the commands it would run and runs nothing.
  *
- * @returns {{source, skills, ok, command, stderr?}[] | [{ok: false, error}]}
+ * @returns {{source, skills, ok, command, dryRun?, stderr?}[] | [{ok: false, error}]}
  */
-export function vendorInstall(dest, items) {
+export function vendorInstall(dest, items, dry = false) {
   if (!items.length) return [];
   if (!nodeAtLeast(VENDOR_NODE_MIN)) {
     return [{ ok: false, error: `npx skills needs Node >= ${VENDOR_NODE_MIN.join('.')}; this is ${process.versions.node}` }];
   }
-  return groupBySource(items).map(([source, skills]) => npxSkillsAdd(dest, source, skills));
+  return groupBySource(items).map(([source, skills]) => npxSkillsAdd(dest, source, skills, dry));
 }
 
 /**

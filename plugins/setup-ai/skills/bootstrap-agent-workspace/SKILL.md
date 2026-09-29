@@ -1,7 +1,7 @@
 ---
 name: bootstrap-agent-workspace
 description: >-
-  Set up (or add to, update, repair) an agent workspace in the current repository from the setup-ai template packs — working rules, guard-rail hooks, rubber-duk review agents, feature/bugfix/refactor/analysis workflows, Jira filing and QA, tech-writing skills. Asks what to set up, checks and installs each pack's prerequisites (plugins, npx skills, CLIs, MCP servers) after a yes/no confirmation, fills the templates with the repo's specifics, merges settings, and reports what's left to do. Use when the user says "bootstrap this repo", "set up the agent workspace", "install the review agents", "add the dev workflow", "set up hooks", "vendor the templates", "setup-ai", "update the setup-ai templates", or "repair the workspace" — or when a session-start notice from setup-ai asks for an update or repair.
+  Use when the user wants the agent workspace set up in the current repository, or added to, updated or repaired — "bootstrap this repo", "set up the agent workspace", "setup-ai", "install the review agents", "add the dev workflow", "set up hooks", "vendor the templates", "update the setup-ai templates", "repair the workspace" — or when a setup-ai session-start notice asks for an update or repair.
 argument-hint: "[install | add | update | repair]"
 ---
 
@@ -35,8 +35,9 @@ the user how to install it for their platform — nothing else in this skill wor
 - Ask with `AskUserQuestion`. It takes up to four questions per call and two to four options
   per question — split longer lists across questions, and put the recommended option first
   with "(Recommended)" in its label.
-- Keep the values file outside the repository (your scratchpad, or the OS temp directory).
-  Its shape: `{ "tokens": { "NAME": "value" }, "options": { "key": value } }`.
+- Keep the values file outside the repository — your scratchpad, or the OS temp directory as
+  `setup-ai-<repo folder name>-values.json` — and delete it when the run ends. Its shape:
+  `{ "tokens": { "NAME": "value" }, "options": { "key": value } }`.
 
 ## 0. Pick the mode
 
@@ -95,17 +96,15 @@ continue?"*
 
 - **No** → stop. Say that nothing was written, and which pack needs which prerequisite, so
   they can come back with a smaller selection.
-- **Yes** →
-  1. `prereqs --packs <chosen> --values <file>` installs the plugins (adding their
-     marketplaces first) and the third-party skills. Report each step's result; a failed step
-     is shown with its error and the user decides whether to continue.
-  2. Missing CLIs: show the install command, suggest the user run it with the `!` prefix,
-     and re-run `plan` to confirm before continuing.
-  3. Missing env vars: tell the user to add them to the git-ignored
+- **Yes** → carry on to the values. The installs themselves run in step 7, right before the
+  render, so a user who stops at the values or conflicts has nothing half-installed.
+  Meanwhile:
+  1. Missing CLIs: show the install command, suggest the user run it with the `!` prefix,
+     and re-run `plan` to confirm before rendering.
+  2. Missing env vars: tell the user to add them to the git-ignored
      `.claude/settings.local.json` under `"env"` (or their shell profile), never to a
      committed file. They are needed at runtime, not to render — continue, and repeat the
      reminder in the final checklist.
-  4. Plugins and MCP servers installed now load in the **next** session; say so.
 
 ### 5. Collect the values
 
@@ -119,15 +118,27 @@ Confirm them with the user in batches: up to four tokens per `AskUserQuestion` c
 question offering the inferred value as the first option and "Other" for their own. Nothing
 is rendered until `missingTokens` is empty.
 
+A token has exactly three sources: what `detect` inferred, the catalog `default`, or the
+user's answer. When none of the three gives a value — the user can't answer, won't, or said
+"don't ask me" — drop the packs or options that need that token (`firstUsedIn` names them),
+tell the user which and why, and install the rest. A made-up value (`TODO_…`, `CHANGE_ME`,
+`example.com`, a guessed project key) renders a broken skill; the engine rejects the
+placeholder-shaped ones as missing. If `plan` reports `invalidOptions`, fix the option
+values before continuing.
+
 ### 6. Dry run and conflicts
 
 `render --dry-run --packs <chosen> --values <file>`. For each path in `conflicts` (the file
 already exists and differs), ask: keep theirs, or overwrite with the template. Collect the
 overwrites into `--overwrite path1,path2`.
 
-### 7. Render
+### 7. Install prerequisites, then render
 
-`render --packs <chosen> --values <file> [--overwrite …]`. It writes the files, appends to
+1. `prereqs --packs <chosen> --values <file>` installs the plugins (adding their
+   marketplaces first) and the third-party skills. Report each step's result; a failed step
+   is shown with its error and the user decides whether to continue. Plugins and MCP servers
+   installed now load in the **next** session; say so.
+2. `render --packs <chosen> --values <file> [--overwrite …]`. It writes the files, appends to
 `CLAUDE.md` and `.gitignore`, merges `.claude/settings.json` (hooks, `enabledPlugins`,
 `extraKnownMarketplaces`) and `.mcp.json`, and records the install in
 `.claude/setup-ai.json`.
@@ -135,6 +146,7 @@ overwrites into `--overwrite path1,path2`.
 ### 8. Verify and report
 
 - `errors` must be empty — a leftover `{{UPPER}}` token is a bug to fix, not a to-do.
+- Delete the values file.
 - `git status --short` shows only the files the render reported.
 - Report, as a short checklist:
   - what was installed (packs, agents, skills, hooks, MCP servers) and where;
@@ -148,6 +160,9 @@ overwrites into `--overwrite path1,path2`.
 
 Same as install, but the pack question lists only packs not in `.claude/setup-ai.json`, and
 the values file starts from the record's `tokens` and `options` so nothing is asked twice.
+Render the recorded packs **and** the new ones together, with `--update`: files of the
+existing packs that switch on sections for the new pack (the working rules, the workflows)
+are refreshed where the user hasn't edited them, and edited ones come back as conflicts.
 
 ## Update
 
@@ -167,6 +182,7 @@ the record lists are missing.
 ## Red flags — stop
 
 - About to write, append or install before the prerequisite gate was answered "yes".
+- A token value nobody inferred, defaulted or answered.
 - About to write a token value that is a secret into any file.
 - A `render` result with `errors`, reported as done.
 - Overwriting a conflicting file without the user's explicit choice.

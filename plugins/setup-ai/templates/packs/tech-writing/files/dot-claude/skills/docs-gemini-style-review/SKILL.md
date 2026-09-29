@@ -1,7 +1,7 @@
 ---
 name: docs-gemini-style-review
 description: >-
-  Get a second-opinion prose review from a different model — the `agy` CLI running Gemini headlessly — over {{PRODUCT_NAME}} docs judged against the style guides in `{{STYLE_GUIDE_DIR}}`, or over the doc comments and inline comments a branch added or reworded, judged against `docs/conventions/comment-policy.md`. Use whenever docs under `{{CONTENT_GLOB}}` have just been written or edited and the wording should be checked before it is committed — "style check this", "review this copy", "run the gemini review", "does this match the style guide", "second opinion on this wording", "check this against the word list", "is this admonition ok" — and reach for it proactively after drafting any new user-facing docs prose, because the author who just wrote a paragraph is the person least able to see its terminology and voice drift. Also use it at the end of a branch to audit the comments the branch wrote — "audit the doc comments on this branch", "gemini review the comments". Not for checking docs for factual accuracy against product source (that is `docs-source-validation`), and not for reviewing code logic.
+  Use when {{PRODUCT_NAME}} docs prose was just written or edited and its wording should get a second opinion from another model before commit — "style check this", "review this copy", "run the gemini review", "does this match the style guide", "second opinion on this wording", "check this against the word list" — or proactively after drafting new user-facing docs; also at the end of a branch to audit the doc and inline comments it added ("gemini review the comments"). Not for factual accuracy against product source (docs-source-validation) or for reviewing code logic.
 ---
 
 # Gemini style review

@@ -1,12 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { RECORD, die, exists, out, pluginVersion, readJson, sha } from '../lib/util.mjs';
+import { RECORD, die, exists, out, pluginVersion, readJson } from '../lib/util.mjs';
 import { evalCond } from '../lib/conditions.mjs';
 import { leftoverTokens, renderTokens, todoPlaceholders } from '../lib/template.mjs';
 import { buildFiles, packTodos } from '../lib/packs.mjs';
 import { mergeMcpFile, mergeSettingsFile } from '../lib/settings.mjs';
 import { requiredPlugins, requiredVendorSkills } from '../lib/prereqs.mjs';
-import { fileAction, planFor } from '../lib/context.mjs';
+import { contentHash, fileAction, planFor } from '../lib/context.mjs';
 
 // Adds each pack's `appends` text to its file (creating it) exactly once.
 function applyAppends(all, order, ctx, dry) {
@@ -34,8 +34,14 @@ function applyAppends(all, order, ctx, dry) {
 // file so `--update` can tell rendered files from user-edited ones.
 function writeRecord(all, order, ctx, files, conflicts, prev) {
   const fileHashes = { ...(prev?.files ?? {}) };
-  for (const f of files) if (!conflicts.includes(f.dest)) fileHashes[f.dest] = { pack: f.pack, hash: sha(f.buf) };
+  for (const f of files) if (!conflicts.includes(f.dest)) fileHashes[f.dest] = { pack: f.pack, hash: contentHash(f.buf) };
   const packNames = [...new Set([...(prev?.packs ?? []).map((p) => p.name), ...order])];
+  // A render of some packs must not forget what earlier renders required.
+  const plugins = [...new Set([...(prev?.plugins ?? []), ...requiredPlugins(all, order, ctx).map((p) => p.id)])];
+  const vendorSkills = [...(prev?.vendorSkills ?? [])];
+  for (const { source, skill } of requiredVendorSkills(all, order, ctx)) {
+    if (!vendorSkills.some((v) => v.skill === skill)) vendorSkills.push({ source, skill });
+  }
   const rec = {
     setupAiVersion: pluginVersion(),
     installedAt: prev?.installedAt ?? new Date().toISOString(),
@@ -43,8 +49,8 @@ function writeRecord(all, order, ctx, files, conflicts, prev) {
     packs: packNames.map((n) => ({ name: n, version: all[n]?.version ?? null })),
     options: { ...(prev?.options ?? {}), ...ctx.options },
     tokens: { ...(prev?.tokens ?? {}), ...ctx.tokens },
-    plugins: requiredPlugins(all, order, ctx).map((p) => p.id),
-    vendorSkills: requiredVendorSkills(all, order, ctx).map(({ source, skill }) => ({ source, skill })),
+    plugins,
+    vendorSkills,
     files: fileHashes,
   };
   fs.mkdirSync(path.join(ctx.dest, '.claude'), { recursive: true });
@@ -57,7 +63,8 @@ function writeRecord(all, order, ctx, files, conflicts, prev) {
  * `--dry-run` computes the same report and writes nothing.
  */
 export function cmdRender(args) {
-  const { all, order, ctx, missingTokens } = planFor(args);
+  const { all, order, ctx, missingTokens, invalidOptions } = planFor(args);
+  if (invalidOptions.length) die('invalid option values', { invalidOptions });
   if (missingTokens.length) die('missing token values — collect them first', { missingTokens });
   const dry = Boolean(args['dry-run']);
   const record = readJson(path.join(ctx.dest, RECORD), null);

@@ -114,5 +114,10 @@
       "when": "option:jiraSkills=test-issue",
       "text": ".cache/test-issue/"
     }
+  ],
+  "todo": [
+    {
+      "text": "Set JIRA_EMAIL and JIRA_API_TOKEN in your shell profile or the git-ignored .claude/settings.local.json env block, then start a new session: Claude Code asks once to approve the project MCP server from .mcp.json."
+    }
   ]
 }
