@@ -1,6 +1,6 @@
 # setup-ai pack format
 
-The engine is `plugins/setup-ai/scripts/workspace.mjs`; this file describes what it reads.
+The engine is `plugins/setup-ai/scripts/` (`workspace.mjs` entry, `lib/`, `commands/`); this file describes what it reads.
 When they disagree, the engine wins — fix this file.
 
 ## `pack.json`
@@ -16,7 +16,8 @@ When they disagree, the engine wins — fix this file.
                   "marketplace": { "name": "claude-plugins-official", "repo": "anthropics/claude-plugins-official" },
                   "when": "option:agents=rubber-duk-frontend", "why": "…" }],
     "vendorSkills": [{ "source": "vercel-labs/agent-skills", "skills": ["web-design-guidelines"], "when": "…", "why": "…" }],
-    "cli": [{ "name": "jq", "when": "…", "why": "…", "optional": false }]
+    "cli": [{ "name": "jq", "when": "…", "why": "…", "optional": false }],
+    "env": [{ "name": "JIRA_API_TOKEN", "when": "…", "why": "…" }]   // presence only; values never read
   },
   "recommends": ["hooks"],            // offered, not forced
   "options": {
@@ -26,9 +27,17 @@ When they disagree, the engine wins — fix this file.
   "tokens": { "PACK_TOKEN": { "prompt": "…", "default": "…", "infer": "…" } },   // pack-only tokens
   "fileConditions": { "dot-claude/hooks/notify-done": "option:hooks=notify-done" }, // path-prefix → condition
   "appends": [{ "to": "CLAUDE.md", "text": "@{{AI_DIR}}/agent-working-rules.md", "create": "# {{PROJECT_NAME}}\n\n", "when": "…" }],
-  "settings": { "hooks": { "PreToolUse": [{ "@when": "option:hooks=x", "matcher": "Bash", "hooks": [ … ] }] } }
+  "settings": { "hooks": { "PreToolUse": [{ "@when": "option:hooks=x", "matcher": "Bash", "hooks": [ … ] }] } },
+  "mcp": { "{{JIRA_MCP_SERVER}}": { "@when": "…", "type": "stdio", "command": "npx", "args": [ … ], "env": { "TOKEN": "${TOKEN}" } } },
+  "todo": [{ "when": "option:…", "text": "manual step shown after render" }]
 }
 ```
+
+- **Option keys are one global namespace** across all packs (the values file has a single
+  `options` object). The engine refuses to load when two packs declare the same key, so
+  name them for the pack (`jiraSkills`, `writingSkills`), not generically (`skills`).
+- `mcp` servers are merged into the target's `.mcp.json` (committed): secrets **must** be
+  `${VAR}` references, with the variable listed in `requires.env`.
 
 - `requires.plugins` → the wizard installs them at project scope and `render` writes `enabledPlugins` (+ `extraKnownMarketplaces` for non-official marketplaces) into the target's `.claude/settings.json`.
 - `requires.vendorSkills` → `npx skills add <source> --skill … -a claude-code -y --copy` (Node ≥ 22.20). `--skill` takes the SKILL.md `name:`, not the folder.
@@ -39,7 +48,7 @@ When they disagree, the engine wins — fix this file.
 
 ## `files/**`
 
-- Mirrors the target repo. `dot-claude/` → `.claude/`. That is the **only** dot-directory remapped (`destRel()`); a new `dot-<x>` needs an engine change there, never a literal dot folder.
+- Mirrors the target repo. Any `dot-<name>/` segment becomes `.<name>/` (`destRel()` in `lib/template.mjs`) — `dot-claude/`, `dot-github/`, … Never store a literal dot folder: a stored `.claude/skills` would load as live skills in this repo.
 - Path segments may hold tokens: `files/{{AI_DIR}}/reminders.md`.
 - Existing target files are never overwritten — `render` reports a conflict; `--overwrite` / `--update` decide.
 
@@ -60,7 +69,7 @@ When they disagree, the engine wins — fix this file.
 ## Tokens and detection
 
 - A token used by more than one pack goes in `templates/placeholders.json` (`prompt`, `default`, `infer`). Pack-only tokens go in that pack's `tokens`.
-- A new `detect:<flag>` or inferred token value means editing `detect()` in `workspace.mjs` — it must stay cheap and read-only (package.json, lockfiles, git remote, a few `exists` checks).
+- A new `detect:<flag>` or inferred token value means editing `detect()` in `lib/detect.mjs` — it must stay cheap and read-only (package.json, lockfiles, git remote, a few `exists` checks).
 
 ## Hooks
 
