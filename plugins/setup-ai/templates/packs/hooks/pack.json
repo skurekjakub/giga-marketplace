@@ -1,0 +1,180 @@
+{
+  "name": "hooks",
+  "version": "0.1.0",
+  "title": "Guard-rail hooks",
+  "summary": "Bash hooks wired into .claude/settings.json: block destructive git/rm commands, steer to one verify command, format on edit, re-inject project context after compaction, periodic rule reminders, done notifications, ADO PR body limits.",
+  "requires": {
+    "cli": [
+      {
+        "name": "bash",
+        "when": "platform:win32",
+        "why": "Hooks are bash scripts; on Windows Claude Code runs them with Git Bash (Git for Windows)."
+      },
+      {
+        "name": "jq",
+        "why": "Hooks read their JSON payload with jq. Without it block-destructive-bash falls back to raw matching and the other hooks silently do nothing."
+      }
+    ]
+  },
+  "options": {
+    "hooks": {
+      "type": "multi",
+      "prompt": "Which hooks should be installed?",
+      "choices": [
+        {
+          "value": "block-destructive-bash",
+          "label": "Block destructive commands",
+          "description": "PreToolUse/Bash: denies rm -rf /, force pushes, reset --hard origin/, rebase -i, commit --amend, --no-verify, --no-gpg-sign.",
+          "default": true
+        },
+        {
+          "value": "prefer-verify-script",
+          "label": "Prefer the verify command",
+          "description": "PreToolUse/Bash: denies chaining quality gates by hand or unscoped whole-repo test/lint runs; points at VERIFY_CMD.",
+          "defaultWhen": "detect:verifyScript"
+        },
+        {
+          "value": "format-on-edit",
+          "label": "Format on edit",
+          "description": "PostToolUse/Write|Edit: runs the repo's own prettier (+ eslint --fix for scripts) on the edited file.",
+          "defaultWhen": "detect:prettier"
+        },
+        {
+          "value": "project-context",
+          "label": "Re-inject project context",
+          "description": "SessionStart (startup, compact): AGENTS.md (if not imported by CLAUDE.md), memory index, branch.",
+          "default": true
+        },
+        {
+          "value": "remind-rules",
+          "label": "Periodic rule reminders",
+          "description": "UserPromptSubmit + PostToolUse: re-injects the bullets in AI_DIR/reminders.md every ~6 minutes.",
+          "default": true
+        },
+        {
+          "value": "notify-done",
+          "label": "Desktop notification when done",
+          "description": "Stop: notify-send (Linux), osascript (macOS), balloon tip (Windows).",
+          "default": false
+        },
+        {
+          "value": "ado-pr-body",
+          "label": "Azure DevOps PR body guard",
+          "description": "PreToolUse on ADO PR create/update MCP tools: injects PR guidelines, blocks bodies over 4000 chars.",
+          "defaultWhen": "detect:ado"
+        }
+      ]
+    }
+  },
+  "fileConditions": {
+    "dot-claude/hooks/block-destructive-bash": "option:hooks=block-destructive-bash",
+    "dot-claude/hooks/prefer-verify-script": "option:hooks=prefer-verify-script",
+    "dot-claude/hooks/format-on-edit": "option:hooks=format-on-edit",
+    "dot-claude/hooks/project-context": "option:hooks=project-context",
+    "dot-claude/hooks/remind-rules": "option:hooks=remind-rules",
+    "{{AI_DIR}}/reminders.md": "option:hooks=remind-rules",
+    "dot-claude/hooks/notify-done": "option:hooks=notify-done",
+    "dot-claude/hooks/ado-pr-body": "option:hooks=ado-pr-body",
+    "{{AI_DIR}}/resources/pr-guidelines.md": "option:hooks=ado-pr-body"
+  },
+  "settings": {
+    "hooks": {
+      "PreToolUse": [
+        {
+          "@when": "option:hooks=block-destructive-bash",
+          "matcher": "Bash",
+          "hooks": [
+            {
+              "type": "command",
+              "shell": "bash",
+              "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/block-destructive-bash\""
+            }
+          ]
+        },
+        {
+          "@when": "option:hooks=prefer-verify-script",
+          "matcher": "Bash",
+          "hooks": [
+            {
+              "type": "command",
+              "shell": "bash",
+              "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/prefer-verify-script\""
+            }
+          ]
+        },
+        {
+          "@when": "option:hooks=ado-pr-body",
+          "matcher": "mcp__.*__repo_(create|update)_pull_request",
+          "hooks": [
+            {
+              "type": "command",
+              "shell": "bash",
+              "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/ado-pr-body\""
+            }
+          ]
+        }
+      ],
+      "PostToolUse": [
+        {
+          "@when": "option:hooks=format-on-edit",
+          "matcher": "Write|Edit|MultiEdit",
+          "hooks": [
+            {
+              "type": "command",
+              "shell": "bash",
+              "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/format-on-edit\""
+            }
+          ]
+        },
+        {
+          "@when": "option:hooks=remind-rules",
+          "matcher": "Write|Edit|MultiEdit",
+          "hooks": [
+            {
+              "type": "command",
+              "shell": "bash",
+              "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/remind-rules\""
+            }
+          ]
+        }
+      ],
+      "UserPromptSubmit": [
+        {
+          "@when": "option:hooks=remind-rules",
+          "hooks": [
+            {
+              "type": "command",
+              "shell": "bash",
+              "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/remind-rules\""
+            }
+          ]
+        }
+      ],
+      "SessionStart": [
+        {
+          "@when": "option:hooks=project-context",
+          "matcher": "startup|compact",
+          "hooks": [
+            {
+              "type": "command",
+              "shell": "bash",
+              "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/project-context\""
+            }
+          ]
+        }
+      ],
+      "Stop": [
+        {
+          "@when": "option:hooks=notify-done",
+          "hooks": [
+            {
+              "type": "command",
+              "shell": "bash",
+              "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/notify-done\""
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

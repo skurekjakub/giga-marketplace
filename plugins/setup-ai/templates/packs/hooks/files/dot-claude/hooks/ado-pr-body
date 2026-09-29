@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PreToolUse hook matching the Azure DevOps pull-request tools. Carries
-# .ai/resources/pr-guidelines.md into context on every call, and exits 2 (Claude
+# {{AI_DIR}}/resources/pr-guidelines.md into context on every call, and exits 2 (Claude
 # Code's "deny" signal for PreToolUse) when a body exceeds the ADO API's limit.
 #
 # Format is the guidelines file's job, not this hook's. The only enforced rule
@@ -20,7 +20,7 @@ esac
 body=$(echo "$input" | jq -r '.tool_input.description // ""' 2>/dev/null || echo "")
 
 MAX_CHARS=4000
-GUIDELINES="${CLAUDE_PROJECT_DIR:-.}/.ai/resources/pr-guidelines.md"
+GUIDELINES="${CLAUDE_PROJECT_DIR:-.}/{{AI_DIR}}/resources/pr-guidelines.md"
 
 rules() {
     if [ -r "$GUIDELINES" ]; then
@@ -29,7 +29,7 @@ rules() {
     fi
     cat <<EOF
 Azure DevOps PR format:
-- Title: \`<JIRA-KEY> - <title>\` when a Jira issue is associated; otherwise any plain title.
+- Title: \`<ISSUE-KEY> - <title>\` when a tracker issue is associated; otherwise any plain title.
 - Bullets only; one sentence per bullet, one bullet per change.
 - ${MAX_CHARS} characters is the hard block (the ADO API's own limit).
 - Headings (\`## \`) only when there are two or more distinct concerns.

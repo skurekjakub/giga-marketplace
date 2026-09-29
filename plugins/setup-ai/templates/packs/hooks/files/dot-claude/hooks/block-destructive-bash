@@ -10,11 +10,22 @@
 #   - git rebase -i (interactive — not supported in Claude Code)
 #   - git commit --amend (per project convention, prefer new commits)
 #   - git push --no-verify / commit --no-verify (skips hooks)
+#   - git push / commit --no-gpg-sign (skips signing)
+#
+# Edit or delete any match_and_block line your team doesn't want.
+#
+# Reads the command with jq. Without jq it fails closed-ish: the patterns are
+# matched against the raw hook payload instead, which still catches every
+# destructive command (at the cost of the odd false positive).
 
 set -euo pipefail
 
 input=$(cat)
-cmd=$(echo "$input" | jq -r '.tool_input.command // ""' 2>/dev/null || echo "")
+if command -v jq >/dev/null 2>&1; then
+    cmd=$(echo "$input" | jq -r '.tool_input.command // ""' 2>/dev/null || echo "")
+else
+    cmd="$input"
+fi
 
 # Empty command — let it through; Claude Code will handle.
 if [ -z "$cmd" ]; then

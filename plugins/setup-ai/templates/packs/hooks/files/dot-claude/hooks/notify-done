@@ -1,48 +1,64 @@
 #!/usr/bin/env bash
 # Stop hook — fires when Claude finishes its overall response. Pings a desktop
-# notification (Linux only, via notify-send) so you don't have to keep the
-# terminal in focus.
+# notification so you don't have to keep the terminal in focus.
 #
-# Suppresses the notification if the active window IS a known terminal class
-# OR an editor that commonly hosts an integrated terminal (VS Code, Cursor,
-# JetBrains). Falls through to notifying if focus detection isn't available
-# (xdotool/xprop missing, no DISPLAY, Wayland w/o XWayland) — better to
-# over-notify than miss the ping.
+#   Linux:   notify-send. Suppressed when the focused window is a terminal or an
+#            editor with an integrated terminal (needs xdotool + xprop on X11 or
+#            XWayland; without them it always notifies — better to over-notify
+#            than miss the ping).
+#   macOS:   osascript "display notification".
+#   Windows: a PowerShell balloon tip (Git Bash runs this hook).
 #
-# Implementation note: we use `xdotool getactivewindow` to grab the window
-# ID, then `xprop WM_CLASS` to read its class. xdotool's own
-# `getwindowclass` / `getwindowclassname` subcommands are absent on some
-# distro builds (the older C version) — xprop is universally available
-# wherever X11 is, so it's a more portable read.
-#
-# Wayland note: both tools need X11/XWayland. On Wayland-only setups,
-# focus detection silently fails and you'll always get the notification.
+# Never blocks and never fails the turn: every branch ends in `|| true`.
 
 set -euo pipefail
 
-should_notify=true
+TITLE="Claude Code"
+MESSAGE="done"
 
-if command -v xdotool >/dev/null 2>&1 && command -v xprop >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
-    win_id=$(xdotool getactivewindow 2>/dev/null || echo "")
-    active_class=""
-    if [ -n "$win_id" ]; then
-        # WM_CLASS(STRING) = "instance", "Class" — take the last quoted token (the class).
-        active_class=$(xprop -id "$win_id" WM_CLASS 2>/dev/null | sed -n 's/.*"\([^"]*\)"$/\1/p')
+notify_linux() {
+    local should_notify=true
+    if command -v xdotool >/dev/null 2>&1 && command -v xprop >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
+        local win_id active_class=""
+        win_id=$(xdotool getactivewindow 2>/dev/null || echo "")
+        if [ -n "$win_id" ]; then
+            # WM_CLASS(STRING) = "instance", "Class" — take the last quoted token (the class).
+            active_class=$(xprop -id "$win_id" WM_CLASS 2>/dev/null | sed -n 's/.*"\([^"]*\)"$/\1/p')
+        fi
+        case "$active_class" in
+            Gnome-terminal|gnome-terminal|kitty|Kitty|Alacritty|alacritty|Konsole|konsole|XTerm|xterm|UXTerm|st|St|Terminator|terminator|Tilix|tilix|WezTerm|wezterm|Foot|foot|Ghostty|ghostty|Hyper|hyper)
+                should_notify=false ;;
+            Code|code|Code-Insiders|code-insiders|VSCodium|vscodium|Cursor|cursor|Windsurf|windsurf|jetbrains-*)
+                should_notify=false ;;
+        esac
     fi
-    case "$active_class" in
-        # Terminal emulators
-        Gnome-terminal|gnome-terminal|kitty|Kitty|Alacritty|alacritty|Konsole|konsole|XTerm|xterm|UXTerm|st|St|Terminator|terminator|Tilix|tilix|WezTerm|wezterm|Foot|foot|Ghostty|ghostty|Hyper|hyper)
-            should_notify=false
-            ;;
-        # Editors with integrated terminals (you're probably already watching the output)
-        Code|code|Code-Insiders|code-insiders|VSCodium|vscodium|Cursor|cursor|Windsurf|windsurf|jetbrains-idea|jetbrains-pycharm|jetbrains-webstorm|jetbrains-goland|jetbrains-rider|jetbrains-clion|jetbrains-rubymine|jetbrains-phpstorm)
-            should_notify=false
-            ;;
-    esac
-fi
+    if [ "$should_notify" = "true" ] && command -v notify-send >/dev/null 2>&1; then
+        notify-send "$TITLE" "$MESSAGE" --urgency=low --expire-time=3000 2>/dev/null || true
+    fi
+}
 
-if [ "$should_notify" = "true" ] && command -v notify-send >/dev/null 2>&1; then
-    notify-send "Claude Code" "done" --urgency=low --expire-time=3000 2>/dev/null || true
-fi
+notify_macos() {
+    osascript -e "display notification \"${MESSAGE}\" with title \"${TITLE}\"" >/dev/null 2>&1 || true
+}
+
+notify_windows() {
+    command -v powershell.exe >/dev/null 2>&1 || return 0
+    powershell.exe -NoProfile -NonInteractive -Command "
+        Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+        \$n = New-Object System.Windows.Forms.NotifyIcon
+        \$n.Icon = [System.Drawing.SystemIcons]::Information
+        \$n.Visible = \$true
+        \$n.ShowBalloonTip(3000, '${TITLE}', '${MESSAGE}', 'Info')
+        Start-Sleep -Seconds 4
+        \$n.Dispose()
+    " >/dev/null 2>&1 &
+    disown 2>/dev/null || true
+}
+
+case "$(uname -s 2>/dev/null || echo unknown)" in
+    Linux*) notify_linux ;;
+    Darwin*) notify_macos ;;
+    MINGW*|MSYS*|CYGWIN*) notify_windows ;;
+esac
 
 exit 0

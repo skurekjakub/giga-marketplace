@@ -1,21 +1,26 @@
 #!/usr/bin/env bash
-# PreToolUse hook matching Bash. Steers whole-repo quality-gate runs toward
-# `npm run verify` by exiting 2 (Claude Code's "deny" signal for PreToolUse).
-# Pass-through (exit 0) for anything else.
+# PreToolUse hook matching Bash. Steers whole-repo quality-gate runs toward the
+# project's single verify command ({{VERIFY_CMD}}) by exiting 2 (Claude Code's
+# "deny" signal for PreToolUse). Pass-through (exit 0) for anything else.
 #
 # The point is to stop the "run five gates by hand" pattern without breaking the
 # tight debugging loop, so the rules are deliberately narrow:
 #
 #   1. Two or more gates chained in one command  -> blocked. That is verify's job.
 #   2. An unscoped whole-repo run of a gate that HAS a scoped form
-#      (test, lint, format:check)               -> blocked. Scope it or verify.
-#   3. A lone typecheck / knip / depcruise       -> allowed. No scoped form
-#      exists, and each is fast enough to be a legitimate single check.
+#      (test, lint, format check)               -> blocked. Scope it or verify.
+#   3. A lone typecheck / knip / dependency-cruiser run -> allowed. No scoped
+#      form exists, and each is fast enough to be a legitimate single check.
 #
 # Matching is anchored to the whole segment, so any extra argument — a path, a
 # filter, `--` passthrough — falls through as a scoped run and is allowed.
+# Add your own gate spellings to gate_of() below.
+#
+# Needs jq to read the hook payload.
 
 set -euo pipefail
+
+VERIFY_CMD='{{VERIFY_CMD}}'
 
 input=$(cat)
 cmd=$(echo "$input" | jq -r '.tool_input.command // ""' 2>/dev/null || echo "")
@@ -24,17 +29,21 @@ if [ -z "$cmd" ]; then
     exit 0
 fi
 
+# Never block the verify command itself.
+[ "$cmd" = "$VERIFY_CMD" ] && exit 0
+
 # Classify one command segment as a gate, or empty string when it is not one.
 gate_of() {
-    # rtk proxies bare dev commands, so the same gate can arrive either way.
+    # Output-filtering proxies (for example rtk) wrap bare dev commands, so the
+    # same gate can arrive either way.
     local seg="${1#rtk }"
     case "$seg" in
-    'npm run typecheck' | 'npx tsc --noEmit' | 'tsc --noEmit') echo typecheck ;;
-    'npm run lint' | 'npx eslint .' | 'eslint .') echo lint ;;
-    'npm run format:check' | 'npx prettier --check .') echo format ;;
+    'npm run typecheck' | 'pnpm typecheck' | 'yarn typecheck' | 'npx tsc --noEmit' | 'tsc --noEmit') echo typecheck ;;
+    'npm run lint' | 'pnpm lint' | 'yarn lint' | 'npx eslint .' | 'eslint .') echo lint ;;
+    'npm run format:check' | 'pnpm format:check' | 'yarn format:check' | 'npx prettier --check .') echo format ;;
     'npm run knip' | 'npx knip' | 'npx knip --no-progress') echo knip ;;
-    'npm run check:circular-dependencies') echo depcruise ;;
-    'npm test' | 'npm run test' | 'npx vitest run' | 'vitest run') echo test ;;
+    'npx depcruise src' | 'npx depcruise .') echo depcruise ;;
+    'npm test' | 'npm run test' | 'pnpm test' | 'yarn test' | 'npx vitest run' | 'vitest run' | 'npx jest' | 'jest') echo test ;;
     *) echo '' ;;
     esac
 }
@@ -52,31 +61,20 @@ if [ "${#gates[@]}" -eq 0 ]; then
     exit 0
 fi
 
-advise() {
+block() {
     echo "blocked by project hook: ${1}" >&2
-    echo "run: npm run verify" >&2
-    echo "  (typecheck -> eslint -> prettier -> depcruise -> knip -> vitest, fastest failure first)" >&2
+    echo "run: ${VERIFY_CMD}${2:+   (or ${2})}" >&2
     echo "command was: ${cmd}" >&2
     exit 2
 }
 
 if [ "${#gates[@]}" -ge 2 ]; then
-    advise "${#gates[@]} quality gates chained by hand (${gates[*]})"
+    block "${#gates[@]} quality gates chained by hand (${gates[*]})"
 fi
 
 case "${gates[0]}" in
-test)
-    echo "blocked by project hook: unscoped whole-repo test run" >&2
-    echo "run: npm run verify   (or scope it: npx vitest run path/to/one.test.ts)" >&2
-    echo "command was: ${cmd}" >&2
-    exit 2
-    ;;
-lint | format)
-    echo "blocked by project hook: unscoped whole-repo ${gates[0]} run" >&2
-    echo "run: npm run verify   (or scope it by passing a path)" >&2
-    echo "command was: ${cmd}" >&2
-    exit 2
-    ;;
+test) block "unscoped whole-repo test run" "scope it to one test file" ;;
+lint | format) block "unscoped whole-repo ${gates[0]} run" "scope it by passing a path" ;;
 esac
 
 exit 0

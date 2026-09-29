@@ -1,0 +1,15 @@
+{
+  "PROJECT_NAME": { "prompt": "Project name as agents should refer to it", "infer": "package.json name, else the repo folder name" },
+  "AI_DIR": { "prompt": "Repo-relative folder for agent working files (journals, follow-ups, resources)", "default": ".ai" },
+  "DEFAULT_BRANCH": { "prompt": "Integration branch feature work branches from and PRs target", "infer": "origin/HEAD, else the current branch" },
+  "STACK_SUMMARY": { "prompt": "One-line stack summary (e.g. \"Next.js 16 / React 19 / TypeScript / Tailwind 4\")", "infer": "framework and tool dependencies in package.json" },
+  "DEV_CMD": { "prompt": "Command that starts the app locally", "infer": "the dev script" },
+  "LOCAL_URL": { "prompt": "URL the local dev server serves", "infer": "3000 for Next.js, 5173 for Vite" },
+  "VERIFY_CMD": { "prompt": "The one command that runs every quality gate (typecheck, lint, tests, …)", "infer": "a verify/check/ci script, else the gates chained with &&" },
+  "TYPECHECK_CMD": { "prompt": "Typecheck command", "infer": "the typecheck script" },
+  "BUILD_CMD": { "prompt": "Production build command", "infer": "the build script" },
+  "TEST_CMD": { "prompt": "Unit/integration test command", "infer": "the test script" },
+  "E2E_CMD": { "prompt": "End-to-end test command", "infer": "a test:e2e / e2e script" },
+  "UNIT_TEST_GLOB": { "prompt": "Where unit/integration tests live (glob)", "infer": "__tests__/**, test/**, else **/*.test.*" },
+  "E2E_GLOB": { "prompt": "Where end-to-end specs live (glob)", "infer": "e2e/**" }
+}

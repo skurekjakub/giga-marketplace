@@ -1,23 +1,25 @@
 #!/usr/bin/env bash
-# SessionStart hook (giga-hooks generic version) — injects AGENTS.md + project
-# memory index + current branch as additional context. Fires on startup AND
-# after compaction to prevent post-compaction identity-doc decay.
+# SessionStart hook — re-injects the project's identity docs after startup and
+# compaction, so a long session doesn't drift once the originals have scrolled
+# out of context:
+#   - AGENTS.md (only when CLAUDE.md doesn't already import it — Claude Code
+#     loads CLAUDE.md and its @imports by itself)
+#   - the project memory index (MEMORY.md) from Claude Code's per-project dir
+#   - the current branch
 #
-# Portability: the Claude memory directory is computed from CLAUDE_PROJECT_DIR
-# using Claude Code's canonical path-mangling (replace / with -). Works for any
-# project that lives under your home or anywhere mountable.
+# The memory directory is computed from CLAUDE_PROJECT_DIR with Claude Code's
+# path mangling: every character that is not a letter or digit becomes '-'
+# (/home/me/repo -> -home-me-repo, C:\Users\me\repo -> C--Users-me-repo).
 
 set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
-# Claude Code mangles the project path by replacing / with -.
-# Example: /home/jakub/repositories/foo → -home-jakub-repositories-foo
-mangled=$(printf '%s' "$PROJECT_DIR" | sed 's|/|-|g')
+mangled=$(printf '%s' "$PROJECT_DIR" | sed 's/[^A-Za-z0-9]/-/g')
 MEMORY_DIR="${HOME}/.claude/projects/${mangled}/memory"
 
 agents_md=""
-if [ -f "${PROJECT_DIR}/AGENTS.md" ]; then
+if [ -f "${PROJECT_DIR}/AGENTS.md" ] && ! grep -qs '^@AGENTS\.md' "${PROJECT_DIR}/CLAUDE.md"; then
     agents_md=$(cat "${PROJECT_DIR}/AGENTS.md")
 fi
 
@@ -31,7 +33,12 @@ if git -C "${PROJECT_DIR}" rev-parse --git-dir >/dev/null 2>&1; then
     current_branch=$(git -C "${PROJECT_DIR}" branch --show-current 2>/dev/null || echo "")
 fi
 
-# Bash parameter-substitution JSON-escaper (faster than character-loop).
+# Nothing worth injecting — stay silent.
+if [ -z "$agents_md" ] && [ -z "$memory_index" ] && [ -z "$current_branch" ]; then
+    exit 0
+fi
+
+# Bash parameter-substitution JSON escaper (no jq needed for output).
 escape_for_json() {
     local s="$1"
     s="${s//\\/\\\\}"
@@ -44,29 +51,20 @@ escape_for_json() {
 
 context="<project-context-on-session-start-or-compact>
 PROJECT_DIR: ${PROJECT_DIR}
-BRANCH: ${current_branch}
+BRANCH: ${current_branch}"
+[ -n "$agents_md" ] && context="${context}
 
 ==== AGENTS.md ====
-${agents_md}
+${agents_md}"
+[ -n "$memory_index" ] && context="${context}
 
 ==== Project memory index (MEMORY.md) ====
 ${memory_index}
 
-Read individual memory files at ${MEMORY_DIR}/<name>.md when their hooks match what you're doing.
+Read individual memory files at ${MEMORY_DIR}/<name>.md when their hooks match what you're doing."
+context="${context}
 </project-context-on-session-start-or-compact>"
 
-context_escaped=$(escape_for_json "$context")
-
-# Emit JSON per the platform's expected shape.
-# Claude Code expects nested hookSpecificOutput regardless of plugin vs project
-# install context — the prior CLAUDE_PLUGIN_ROOT gate was wrong for project hooks
-# (that var is only set inside plugin context) and caused content to be silently
-# dropped. Cursor uses a different top-level key. Copilot CLI is treated as
-# Claude Code-compatible.
-if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
-    printf '{\n  "additional_context": "%s"\n}\n' "$context_escaped"
-else
-    printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$context_escaped"
-fi
+printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$(escape_for_json "$context")"
 
 exit 0
