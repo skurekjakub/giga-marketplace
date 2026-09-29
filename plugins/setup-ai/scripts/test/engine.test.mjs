@@ -23,13 +23,13 @@ const VALUES = {
     TEST_NAMING_PATTERN: '*.test.ts', ASSETS_ROOT: 'public/assets', STYLE_GUIDE_PATH: 'docs/d.md',
     EXAMPLE_DIAGRAM_PATH: 'public/assets/e.drawio.svg', ELEMENT_COLOR: '#123456', CONNECTOR_COLOR: '#654321',
     BRAND_FONT: 'Inter', MARKDOWN_SYNTAX_REF: 'docs/s.md', STYLE_GUIDE_DIR: '.agents/styleguides', CONTENT_GLOB: 'content/**',
-    AGY_MODEL: 'model-high',
+    AGY_MODEL: 'model-high', GITHUB_REPO: 'acme/shop',
   },
   options: {
     profile: 'nextjs',
     hooks: ['block-destructive-bash', 'prefer-verify-script', 'format-on-edit', 'project-context', 'remind-rules', 'notify-done', 'ado-pr-body'],
     agents: ['rubber-duk-review', 'rubber-duk-auditor', 'rubber-duk-backend', 'rubber-duk-frontend', 'rubber-duk-tests', 'rubber-duk-e2e'],
-    jiraSkills: ['file-jira-issue', 'test-issue'],
+    issueSkills: ['file-jira-issue', 'test-issue', 'file-github-issue'],
     codeWork: 'yes',
     writingSkills: ['docs-write-release-notes', 'docs-write-hotfix-notes', 'docs-source-validation', 'docs-create-drawio-diagram', 'docs-gemini-style-review'],
   },
@@ -230,4 +230,122 @@ test('without an e2e agent, no pack asks for e2e tokens', (t) => {
   const res = engine('plan', '--dest', repo.dir, '--packs', 'baseline,review-agents,dev-workflow', '--values', repo.values);
   // Assert
   assert.deepEqual(res.missingTokens.map((m) => `${m.token} (${m.firstUsedIn})`), []);
+});
+
+const snapshot = (dir) => {
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.name === '.git' ? [] : e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
+  return Object.fromEntries(walk(dir).map((f) => [path.relative(dir, f).split(path.sep).join('/'), fs.readFileSync(f, 'utf8')]));
+};
+
+test('removing every pack leaves the repo as it was, apart from enabledPlugins', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  fs.writeFileSync(path.join(repo.dir, 'CLAUDE.md'), '# shop\n\n@AGENTS.md\n');
+  fs.writeFileSync(path.join(repo.dir, 'AGENTS.md'), '# Agents\n');
+  const before = snapshot(repo.dir);
+  engine('render', '--dest', repo.dir, '--packs', ALL_PACKS, '--values', repo.values);
+  // Act
+  const res = engine('remove', '--dest', repo.dir, '--packs', ALL_PACKS);
+  // Assert
+  assert.equal(res.ok, true, JSON.stringify(res.errors));
+  const { '.claude/settings.json': settings, ...after } = snapshot(repo.dir);
+  assert.deepEqual(after, before);
+  assert.equal(JSON.parse(settings).hooks, undefined);
+  assert.ok(res.pluginsNoLongerRequired.some((p) => p.id === 'research-planning@giga-marketplace'));
+});
+
+test('remove refuses a pack that another installed pack requires', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  engine('render', '--dest', repo.dir, '--packs', 'dev-workflow', '--values', repo.values);
+  // Act
+  const res = engine('remove', '--dest', repo.dir, '--packs', 'review-agents');
+  // Assert
+  assert.equal(res.ok, false);
+  assert.deepEqual(res.dependents, [{ pack: 'dev-workflow', requires: ['review-agents'] }]);
+  assert.ok(fs.existsSync(path.join(repo.dir, '.claude', 'agents', 'rubber-duk-review.md')));
+});
+
+test('remove keeps an edited file, unhooks settings, and re-renders what mentioned the pack', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  engine('render', '--dest', repo.dir, '--packs', 'baseline,hooks,issue-tracking', '--values', repo.values);
+  const edited = path.join(repo.dir, '.claude', 'hooks', 'notify-done');
+  fs.appendFileSync(edited, '\n# ours\n');
+  // Act
+  const res = engine('remove', '--dest', repo.dir, '--packs', 'hooks,issue-tracking');
+  // Assert
+  assert.equal(res.ok, true, JSON.stringify(res.errors));
+  assert.deepEqual(res.files.keptEdited, ['.claude/hooks/notify-done']);
+  assert.equal(fs.existsSync(path.join(repo.dir, '.claude', 'hooks', 'block-destructive-bash')), false);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(repo.dir, '.claude', 'settings.json'), 'utf8')).hooks, undefined);
+  assert.equal(fs.existsSync(path.join(repo.dir, '.gitattributes')), false);
+  assert.equal(fs.existsSync(path.join(repo.dir, '.mcp.json')), false);
+  const rules = fs.readFileSync(path.join(repo.dir, '.agents', 'agent-working-rules.md'), 'utf8');
+  assert.doesNotMatch(rules, /file-jira-issue/);
+  const rec = JSON.parse(fs.readFileSync(path.join(repo.dir, '.claude', 'setup-ai.json'), 'utf8'));
+  assert.deepEqual(rec.packs.map((p) => p.name), ['baseline']);
+  assert.equal(rec.tokens.JIRA_PROJECT, undefined);
+  assert.equal(rec.options.issueSkills, undefined);
+});
+
+test('status reports edited and missing files and suggests repair', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  engine('render', '--dest', repo.dir, '--packs', 'review-agents', '--values', repo.values);
+  fs.appendFileSync(path.join(repo.dir, '.claude', 'agents', 'rubber-duk-review.md'), '\nlocal edit\n');
+  fs.rmSync(path.join(repo.dir, '.claude', 'agents', 'rubber-duk-tests.md'));
+  // Act
+  const res = engine('status', '--dest', repo.dir);
+  // Assert
+  assert.equal(res.installed, true);
+  assert.deepEqual(res.files.edited.map((f) => f.file), ['.claude/agents/rubber-duk-review.md']);
+  assert.deepEqual(res.files.missing.map((f) => f.file), ['.claude/agents/rubber-duk-tests.md']);
+  assert.ok(res.suggest.includes('repair'));
+});
+
+test('an accepted verify script is added to package.json, turns the verify hook on, and goes on remove', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  const pkgFile = path.join(repo.dir, 'package.json');
+  fs.writeFileSync(pkgFile, JSON.stringify({ name: 'shop', scripts: { lint: 'eslint .', test: 'vitest run', build: 'vite build' } }, null, 2) + '\n');
+  const original = fs.readFileSync(pkgFile, 'utf8');
+  const proposal = engine('detect', '--dest', repo.dir).proposals.verifyScript;
+  fs.writeFileSync(repo.values, JSON.stringify({ ...VALUES, tokens: { ...VALUES.tokens, VERIFY_CMD: proposal.verifyCmd }, packageScripts: { [proposal.script]: proposal.command, lint: 'other' } }));
+  // Act
+  const plan = engine('plan', '--dest', repo.dir, '--packs', 'hooks', '--values', repo.values);
+  const render = engine('render', '--dest', repo.dir, '--packs', 'hooks', '--values', repo.values);
+  const scripts = JSON.parse(fs.readFileSync(pkgFile, 'utf8')).scripts;
+  engine('remove', '--dest', repo.dir, '--packs', 'hooks');
+  // Assert
+  assert.equal(proposal.command, 'npm run lint && npm run test && npm run build');
+  assert.equal(proposal.verifyCmd, 'npm run verify');
+  assert.ok(plan.optionDefaults.hooks.includes('prefer-verify-script'));
+  assert.deepEqual(render.packageScripts, { added: ['verify'], kept: ['lint'] });
+  assert.equal(scripts.verify, proposal.command);
+  assert.equal(scripts.lint, 'eslint .');
+  assert.equal(fs.readFileSync(pkgFile, 'utf8'), original);
+});
+
+test('the GitHub issue skill needs gh and none of the Jira setup', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  const { JIRA_SITE, JIRA_CLOUD_ID, JIRA_PROJECT, JIRA_MCP_SERVER, JIRA_CODE_EPIC, ...tokens } = VALUES.tokens;
+  fs.writeFileSync(repo.values, JSON.stringify({ tokens, options: { issueSkills: ['file-github-issue'], codeWork: 'no' } }));
+  // Act
+  const plan = engine('plan', '--dest', repo.dir, '--packs', 'issue-tracking', '--values', repo.values);
+  const render = engine('render', '--dest', repo.dir, '--packs', 'issue-tracking', '--values', repo.values);
+  // Assert
+  assert.deepEqual(plan.missingTokens, []);
+  assert.deepEqual(plan.prerequisites.clis.map((c) => c.name), ['gh']);
+  assert.deepEqual(plan.prerequisites.env, []);
+  assert.equal(render.ok, true, JSON.stringify(render.errors));
+  assert.equal(fs.existsSync(path.join(repo.dir, '.mcp.json')), false);
+  assert.match(fs.readFileSync(path.join(repo.dir, '.claude', 'skills', 'file-github-issue', 'SKILL.md'), 'utf8'), /--repo acme\/shop/);
 });

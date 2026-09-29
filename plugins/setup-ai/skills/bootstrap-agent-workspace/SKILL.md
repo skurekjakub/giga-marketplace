@@ -1,8 +1,8 @@
 ---
 name: bootstrap-agent-workspace
 description: >-
-  Use when the user wants the agent workspace set up in the current repository, or added to, updated or repaired — "bootstrap this repo", "set up the agent workspace", "setup-ai", "install the review agents", "add the dev workflow", "set up hooks", "vendor the templates", "update the setup-ai templates", "repair the workspace" — or when a setup-ai session-start notice asks for an update or repair.
-argument-hint: "[install | add | update | repair]"
+  Use when the user wants the agent workspace set up in the current repository, or added to, updated, repaired, inspected or removed — "bootstrap this repo", "set up the agent workspace", "setup-ai", "install the review agents", "add the dev workflow", "set up hooks", "vendor the templates", "update the setup-ai templates", "repair the workspace", "what did setup-ai install", "remove the hooks pack", "uninstall setup-ai" — or when a setup-ai session-start notice asks for an update or repair.
+argument-hint: "[install | add | update | repair | status | remove]"
 ---
 
 # Bootstrap an agent workspace
@@ -42,9 +42,11 @@ the user how to install it for their platform — nothing else in this skill wor
 ## 0. Pick the mode
 
 Run `detect`. If `flags.installed` is true, the repo was bootstrapped before
-(`.claude/setup-ai.json` exists): unless the user already said what they want, ask which of
-**add** (more packs), **update** (re-render with newer templates) or **repair** (reinstall
-missing prerequisites) — and jump to that section below. Otherwise it's **install**.
+(`.claude/setup-ai.json` exists): run `status` and, unless the user already said what they
+want, ask which of **add** (more packs), **update** (re-render with newer templates),
+**repair** (reinstall missing prerequisites and files) or **remove** (uninstall packs) —
+recommending what `status.suggest` names — and jump to that section below. A question about
+what is installed is **status**. Otherwise it's **install**.
 
 ## Install
 
@@ -66,7 +68,20 @@ Use each pack's `title` as the label and its `summary` as the description.
 
 ### 3. Resolve dependencies and options
 
-Run `plan --packs <chosen>` (no values yet). From its output:
+**Offer a verify script first.** When `detect.proposals.verifyScript` is set, the repo has
+two or more quality gates and no `verify`/`check`/`ci` script, so `VERIFY_CMD` would be the
+gates chained with `&&`. Ask one question, before the options:
+
+- **Add `"verify": "<command>"` to package.json (Recommended)** — one name for agents, hooks
+  and CI to run. Put `"packageScripts": { "verify": "<command>" }` in the values file and
+  set the `VERIFY_CMD` token to the proposal's `verifyCmd`.
+- **Use the chained command** — nothing is added; `VERIFY_CMD` is the `&&` chain.
+
+Ask it before the options because the answer changes their defaults (the
+`prefer-verify-script` hook is on by default only with a verify script).
+
+Run `plan --packs <chosen>` (no values yet, or the values file with `packageScripts`).
+From its output:
 
 - **`pulledIn`** — packs added because a chosen pack requires them. Tell the user in one
   line; don't ask.
@@ -139,9 +154,9 @@ overwrites into `--overwrite path1,path2`.
    is shown with its error and the user decides whether to continue. Plugins and MCP servers
    installed now load in the **next** session; say so.
 2. `render --packs <chosen> --values <file> [--overwrite …]`. It writes the files, appends to
-`CLAUDE.md` and `.gitignore`, merges `.claude/settings.json` (hooks, `enabledPlugins`,
-`extraKnownMarketplaces`) and `.mcp.json`, and records the install in
-`.claude/setup-ai.json`.
+`CLAUDE.md` and `.gitignore`, adds the accepted `packageScripts` to `package.json`,
+merges `.claude/settings.json` (hooks, `enabledPlugins`, `extraKnownMarketplaces`) and
+`.mcp.json`, and records the install in `.claude/setup-ai.json`.
 
 ### 8. Verify and report
 
@@ -179,6 +194,37 @@ show up in `missingTokens`; ask for those only.
 after a yes, `vendor restore` and `prereqs`. Then re-render with `--update` only if files
 the record lists are missing.
 
+## Status
+
+`status` writes nothing. Summarize it for the user:
+
+- packs with their recorded and available versions (`outdated`), and `notInstalled`;
+- files: the counts, then every `edited` and `missing` file by name;
+- `packageScripts` setup-ai added and whether they still match;
+- prerequisites that aren't satisfied on this machine;
+- the modes in `suggest`, as the next step to offer.
+
+## Remove
+
+1. Run `status` and ask which installed packs to remove (a multi-select).
+2. `remove --packs <chosen> --dry-run`. If it fails with `dependents`, a pack that stays
+   requires one being removed: tell the user which, and ask whether to remove it too or keep
+   both.
+3. Show the dry run as one list: files to delete; lines to take out of appended files, and
+   files that go because nothing else is left in them; hooks leaving
+   `.claude/settings.json`; MCP servers leaving `.mcp.json`; files of the remaining packs
+   that are re-rendered (`rerender.written`) or would conflict (`rerender.conflicts`).
+4. For each path in `files.keptEdited` (edited since it was rendered), ask: keep it, or
+   delete it anyway. Collect the deletes into `--delete-edited path1,path2`.
+5. If `vendorSkillsNoLongerRequired` is not empty, ask whether to delete those skills
+   (`--prune-vendor-skills`).
+6. Ask one yes/no question to go ahead. On yes, run `remove` without `--dry-run` and with
+   the chosen flags. On no, stop — nothing was changed.
+7. `pluginsNoLongerRequired`: list each with its `uninstall` command and ask per plugin —
+   it may be in use outside these packs. Run only the ones the user says yes to.
+8. Report what was removed and what was kept, and offer **update** for any
+   `rerender.conflicts`. Offer to commit.
+
 ## Red flags — stop
 
 - About to write, append or install before the prerequisite gate was answered "yes".
@@ -186,4 +232,6 @@ the record lists are missing.
 - About to write a token value that is a secret into any file.
 - A `render` result with `errors`, reported as done.
 - Overwriting a conflicting file without the user's explicit choice.
+- Deleting an edited file, or uninstalling a plugin, without the user's explicit choice.
+- Editing `package.json` other than through `packageScripts` the user accepted.
 - Guessing a value `detect` didn't infer and the user wasn't asked about.

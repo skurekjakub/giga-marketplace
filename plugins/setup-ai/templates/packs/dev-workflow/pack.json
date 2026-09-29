@@ -1,6 +1,6 @@
 {
   "name": "dev-workflow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "title": "Development workflows",
   "summary": "Phased orchestration skills for feature work, bugfixes, behaviour-preserving refactors and read-only codebase analysis — with journals under AI_DIR (feature constitutions, bugfix and refactor records, follow-ups, DoD checklists, regression suites, diagrams), rubber-duk review gates and published explainers.",
   "requires": {

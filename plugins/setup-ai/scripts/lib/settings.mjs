@@ -138,3 +138,93 @@ export function mergeMcpFile(all, order, ctx, dry) {
   if (changed && !dry) fs.writeFileSync(file, JSON.stringify(next, null, 2) + '\n');
   return { servers: Object.keys(servers), keptExisting: kept, file: '.mcp.json', changed };
 }
+
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+// Removes one hook-settings fragment from `settings.hooks`: each fragment hook
+// command is taken out of the entry with the same matcher (entries were
+// folded by matcher on merge), then emptied entries and events are dropped.
+function removeHooks(settings, fragHooks) {
+  for (const [event, entries] of Object.entries(fragHooks ?? {})) {
+    const cur = settings.hooks?.[event];
+    if (!Array.isArray(cur)) continue;
+    for (const e of entries) {
+      for (const tgt of cur.filter((t) => (t.matcher ?? '') === (e.matcher ?? ''))) {
+        tgt.hooks = (tgt.hooks ?? []).filter((h) => !(e.hooks ?? []).some((x) => same(x, h)));
+      }
+    }
+    settings.hooks[event] = cur.filter((t) => t.hooks?.length);
+    if (!settings.hooks[event].length) delete settings.hooks[event];
+  }
+  if (settings.hooks && !Object.keys(settings.hooks).length) delete settings.hooks;
+}
+
+// The inverse of deepMerge for everything but hooks: array entries and
+// scalars equal to the fragment's are removed; a container the removal
+// emptied is dropped, one that was already empty is left alone.
+function removeFragment(target, frag) {
+  for (const [k, v] of Object.entries(frag)) {
+    if (!(k in target)) continue;
+    const had = target[k];
+    const wasEmpty = isEmpty(had);
+    if (Array.isArray(had) && Array.isArray(v)) target[k] = had.filter((x) => !v.some((y) => same(x, y)));
+    else if (had && typeof had === 'object' && v && typeof v === 'object') removeFragment(had, v);
+    else if (same(had, v)) delete target[k];
+    if (k in target && !wasEmpty && isEmpty(target[k])) delete target[k];
+  }
+}
+
+/**
+ * Takes the settings fragments of `packs` (as rendered with `ctx`) back out of
+ * `<dest>/.claude/settings.json`. `enabledPlugins` and marketplaces are left
+ * alone: the plugin install wrote them too, and uninstalling is the user's call.
+ *
+ * @returns {{status: 'removed'|'unchanged'} | {error: string}}
+ */
+export function unmergeSettingsFile(all, packs, ctx, dry) {
+  const file = path.join(ctx.dest, '.claude', 'settings.json');
+  if (!exists(file)) return { status: 'unchanged' };
+  const current = readJson(file, null);
+  if (current === null) return { error: '.claude/settings.json is not valid JSON — settings not cleaned up' };
+  const next = structuredClone(current);
+  for (const name of packs) {
+    const { hooks, ...rest } = JSON.parse(renderTokens(JSON.stringify(filterSettings(all[name].settings ?? {}, ctx)), ctx.tokens));
+    removeHooks(next, hooks);
+    removeFragment(next, rest);
+  }
+  const changed = !same(next, current);
+  if (changed && !dry) fs.writeFileSync(file, JSON.stringify(next, null, 2) + '\n');
+  return { status: changed ? 'removed' : 'unchanged' };
+}
+
+/**
+ * Removes the MCP servers `packs` declared from `<dest>/.mcp.json` — only
+ * entries still exactly as rendered; one the user changed is kept. The file
+ * goes when nothing else is left in it.
+ *
+ * @returns {null | {removed: string[], kept: string[], deletedFile: boolean} | {error: string}}
+ */
+export function unmergeMcpFile(all, packs, ctx, dry) {
+  const servers = packMcpServers(all, packs, ctx);
+  if (!Object.keys(servers).length) return null;
+  const file = path.join(ctx.dest, '.mcp.json');
+  if (!exists(file)) return { removed: [], kept: [], deletedFile: false };
+  const cur = readJson(file, null);
+  if (cur === null) return { error: '.mcp.json is not valid JSON — MCP servers not removed' };
+  const next = structuredClone(cur);
+  const res = { removed: [], kept: [], deletedFile: false };
+  for (const [k, v] of Object.entries(servers)) {
+    if (!next.mcpServers || !(k in next.mcpServers)) continue;
+    if (same(next.mcpServers[k], v)) {
+      delete next.mcpServers[k];
+      res.removed.push(k);
+    } else res.kept.push(k);
+  }
+  if (!res.removed.length) return res;
+  res.deletedFile = Object.keys(next).length === 1 && !Object.keys(next.mcpServers).length;
+  if (!dry) {
+    if (res.deletedFile) fs.rmSync(file);
+    else fs.writeFileSync(file, JSON.stringify(next, null, 2) + '\n');
+  }
+  return res;
+}

@@ -416,8 +416,11 @@ section's contract and hand the user the URL — it goes in the PR body, and
 once the PR exists, comment on the tracker issue (if the work has one) with
 the PR link and the
 explainer link.
-<!-- @if pack:issue-tracking -->
-File any tracker issues this needs with the `file-jira-issue` skill.
+<!-- @if pack:issue-tracking+option:issueSkills=file-jira-issue -->
+File any Jira issues this needs with the `file-jira-issue` skill.
+<!-- @endif -->
+<!-- @if pack:issue-tracking+option:issueSkills=file-github-issue -->
+File any GitHub issues this needs with the `file-github-issue` skill.
 <!-- @endif -->
 
 ## Reference files

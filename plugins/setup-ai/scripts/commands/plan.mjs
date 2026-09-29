@@ -3,6 +3,7 @@ import { RECORD, out, readJson } from '../lib/util.mjs';
 import { buildFiles, defaultFor, packTodos } from '../lib/packs.mjs';
 import { prereqStatus } from '../lib/prereqs.mjs';
 import { fileAction, planFor } from '../lib/context.mjs';
+import { mergePackageScripts } from '../lib/package-scripts.mjs';
 
 /**
  * `plan` — resolves packs and reports options, prerequisites, missing tokens,
@@ -29,6 +30,7 @@ export function cmdPlan(args) {
     missingTokens,
     invalidOptions,
     manualSteps: packTodos(all, order, ctx),
+    packageScripts: mergePackageScripts(ctx.dest, ctx.packageScripts, true),
     files,
     conflicts: files.filter((f) => f.action === 'conflict').map((f) => f.dest),
   });

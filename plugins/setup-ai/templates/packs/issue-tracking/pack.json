@@ -1,17 +1,26 @@
 {
   "name": "issue-tracking",
-  "version": "0.1.0",
-  "title": "Jira issue filing & QA",
-  "summary": "Jira skills wired to the jira-mcp server (installed into .mcp.json): file-jira-issue drafts six-word, four-block tickets under the right epic with real ADF links; test-issue QA-verifies a ticket's fix against the app running locally and posts an honest verdict comment.",
+  "version": "0.2.0",
+  "title": "Issue filing & QA (Jira, GitHub)",
+  "summary": "file-jira-issue drafts six-word, four-block tickets under the right epic with real ADF links, through the jira-mcp server (installed into .mcp.json); file-github-issue files the same shape of issue on GitHub with the gh CLI; test-issue QA-verifies a Jira ticket's fix against the app running locally and posts an honest verdict comment.",
   "requires": {
+    "cli": [
+      {
+        "name": "gh",
+        "when": "option:issueSkills=file-github-issue",
+        "why": "file-github-issue searches, creates and edits issues with the GitHub CLI (authenticated with gh auth login)."
+      }
+    ],
     "env": [
       {
         "name": "JIRA_EMAIL",
-        "why": "Atlassian account email the jira-mcp server authenticates with. Set it in your shell profile or the git-ignored .claude/settings.local.json env block — never in .mcp.json."
+        "why": "Atlassian account email the jira-mcp server authenticates with. Set it in your shell profile or the git-ignored .claude/settings.local.json env block — never in .mcp.json.",
+        "when": "option:issueSkills=file-jira-issue|option:issueSkills=test-issue"
       },
       {
         "name": "JIRA_API_TOKEN",
-        "why": "Atlassian API token (id.atlassian.com → Security → API tokens) for the jira-mcp server. Same place as JIRA_EMAIL; never committed."
+        "why": "Atlassian API token (id.atlassian.com → Security → API tokens) for the jira-mcp server. Same place as JIRA_EMAIL; never committed.",
+        "when": "option:issueSkills=file-jira-issue|option:issueSkills=test-issue"
       }
     ],
     "vendorSkills": [
@@ -20,7 +29,7 @@
         "skills": [
           "agent-browser"
         ],
-        "when": "option:jiraSkills=test-issue",
+        "when": "option:issueSkills=test-issue",
         "why": "test-issue drives the app in a real browser."
       }
     ]
@@ -29,27 +38,33 @@
     "dev-workflow"
   ],
   "options": {
-    "jiraSkills": {
+    "issueSkills": {
       "type": "multi",
       "prompt": "Which issue-tracking skills should be installed?",
       "choices": [
         {
           "value": "file-jira-issue",
           "label": "file-jira-issue",
-          "description": "Draft, confirm and file well-formed tickets.",
+          "description": "Draft, confirm and file well-formed Jira tickets.",
           "default": true
         },
         {
           "value": "test-issue",
           "label": "test-issue",
-          "description": "QA-verify a ticket's fix locally and post a verdict comment.",
+          "description": "QA-verify a Jira ticket's fix locally and post a verdict comment.",
           "default": true
+        },
+        {
+          "value": "file-github-issue",
+          "label": "file-github-issue",
+          "description": "Draft, confirm and file well-formed GitHub issues with gh.",
+          "defaultWhen": "detect:github"
         }
       ]
     },
     "codeWork": {
       "type": "single",
-      "prompt": "Do codebase tickets go under one standing epic with a [layer] prefix on the summary?",
+      "prompt": "Do codebase Jira tickets go under one standing epic with a [layer] prefix on the summary?",
       "choices": [
         {
           "value": "no",
@@ -83,15 +98,21 @@
     },
     "JIRA_CODE_EPIC": {
       "prompt": "Epic key codebase tickets go under (e.g. ABC-123)"
+    },
+    "GITHUB_REPO": {
+      "prompt": "GitHub repository issues are filed in (owner/name)",
+      "infer": "the origin remote, when it is on github.com"
     }
   },
   "fileConditions": {
     "dot-claude/skills/file-jira-issue/references/layer-prefixes.md": "option:codeWork=yes",
-    "dot-claude/skills/file-jira-issue": "option:jiraSkills=file-jira-issue",
-    "dot-claude/skills/test-issue": "option:jiraSkills=test-issue"
+    "dot-claude/skills/file-jira-issue": "option:issueSkills=file-jira-issue",
+    "dot-claude/skills/test-issue": "option:issueSkills=test-issue",
+    "dot-claude/skills/file-github-issue": "option:issueSkills=file-github-issue"
   },
   "mcp": {
     "{{JIRA_MCP_SERVER}}": {
+      "@when": "option:issueSkills=file-jira-issue|option:issueSkills=test-issue",
       "type": "stdio",
       "command": "npx",
       "args": [
@@ -111,13 +132,18 @@
   "appends": [
     {
       "to": ".gitignore",
-      "when": "option:jiraSkills=test-issue",
+      "when": "option:issueSkills=test-issue",
       "text": ".cache/test-issue/"
     }
   ],
   "todo": [
     {
-      "text": "Set JIRA_EMAIL and JIRA_API_TOKEN in your shell profile or the git-ignored .claude/settings.local.json env block, then start a new session: Claude Code asks once to approve the project MCP server from .mcp.json."
+      "text": "Set JIRA_EMAIL and JIRA_API_TOKEN in your shell profile or the git-ignored .claude/settings.local.json env block, then start a new session: Claude Code asks once to approve the project MCP server from .mcp.json.",
+      "when": "option:issueSkills=file-jira-issue|option:issueSkills=test-issue"
+    },
+    {
+      "text": "If `gh auth status` fails, run `gh auth login` (the token needs the repo scope) before filing GitHub issues.",
+      "when": "option:issueSkills=file-github-issue"
     }
   ]
 }

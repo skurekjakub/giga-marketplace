@@ -34,7 +34,9 @@ command. `setup-ai` ships those as **template packs** and one wizard skill that 
 It detects the repo, asks which packs you want, shows every prerequisite the chosen packs
 need and asks once before installing them, fills the templates with your project's details,
 merges `.claude/settings.json` and `.mcp.json`, and records the install in
-`.claude/setup-ai.json` so `update`, `add` and `repair` work later.
+`.claude/setup-ai.json` so `add`, `update`, `repair`, `status` and `remove` work later.
+`remove` deletes only files nobody edited and takes its hooks, appended lines and MCP
+servers back out.
 
 | Pack | Installs |
 |---|---|
@@ -42,7 +44,7 @@ merges `.claude/settings.json` and `.mcp.json`, and records the install in
 | `hooks` | Guard-rail bash hooks: block destructive commands, prefer the verify command, format on edit, re-inject context after compaction, periodic rule reminders, done notifications, ADO PR limits |
 | `review-agents` | `rubber-duk-*` subagents (review, security audit, backend, frontend, unit tests, e2e) with a per-repo stack profile (Next.js or generic) and starter convention docs |
 | `dev-workflow` | Feature, bugfix, refactor and read-only analysis workflows with journals, review gates and published explainers |
-| `issue-tracking` | Jira ticket filing and ticket QA, with the [jira-mcp](https://github.com/skurekjakub/jira-mcp) server wired into `.mcp.json` |
+| `issue-tracking` | Jira ticket filing and ticket QA, with the [jira-mcp](https://github.com/skurekjakub/jira-mcp) server wired into `.mcp.json`; GitHub issue filing with the `gh` CLI |
 | `tech-writing` | Release notes, hotfix notes, docs-vs-source validation, draw.io diagrams, a Gemini (agy) style review |
 
 **Requirements:** Node.js (the engine; packs with third-party skills need Node ≥ 22.20 for

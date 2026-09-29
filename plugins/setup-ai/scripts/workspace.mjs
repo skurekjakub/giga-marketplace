@@ -15,10 +15,14 @@
  *                                               install missing marketplaces, plugins and vendor skills
  *   render   --dest <repo> --packs a,b --values v.json [--dry-run] [--overwrite p1,p2|all] [--update]
  *                                               write files, appends, settings, .mcp.json, install record
+ *   status   --dest <repo>                      installed packs, file states, prerequisites (writes nothing)
+ *   remove   --dest <repo> --packs a,b [--dry-run] [--delete-edited p1,p2|all] [--prune-vendor-skills]
+ *                                               uninstall packs and re-render the rest
  *   vendor   check|install|restore --dest <repo> [--packs a,b] [--values v.json]
  *   session-check [--dest <repo>]               the plugin's SessionStart hook
  *
- * values.json: { "tokens": { "PROJECT_NAME": "…" }, "options": { "profile": "nextjs", … } }
+ * values.json: { "tokens": { "PROJECT_NAME": "…" }, "options": { "profile": "nextjs", … },
+ *               "packageScripts": { "verify": "npm run lint && npm test" } }
  * Install record: <repo>/.claude/setup-ai.json (commit it).
  *
  * Layout: lib/ holds the shared modules (templating, packs, settings,
@@ -32,6 +36,8 @@ import { cmdPlan } from './commands/plan.mjs';
 import { cmdPrereqs } from './commands/prereqs.mjs';
 import { cmdRender } from './commands/render.mjs';
 import { cmdVendor } from './commands/vendor.mjs';
+import { cmdStatus } from './commands/status.mjs';
+import { cmdRemove } from './commands/remove.mjs';
 import { cmdSessionCheck } from './commands/session-check.mjs';
 
 function parseArgs(argv) {
@@ -58,6 +64,8 @@ const COMMANDS = {
   plan: cmdPlan,
   prereqs: cmdPrereqs,
   render: cmdRender,
+  status: cmdStatus,
+  remove: cmdRemove,
   vendor: cmdVendor,
   'session-check': cmdSessionCheck,
 };

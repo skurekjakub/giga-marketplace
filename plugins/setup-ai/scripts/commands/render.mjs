@@ -5,6 +5,7 @@ import { evalCond } from '../lib/conditions.mjs';
 import { leftoverTokens, renderTokens, todoPlaceholders } from '../lib/template.mjs';
 import { buildFiles, packTodos } from '../lib/packs.mjs';
 import { mergeMcpFile, mergeSettingsFile } from '../lib/settings.mjs';
+import { mergePackageScripts } from '../lib/package-scripts.mjs';
 import { requiredPlugins, requiredVendorSkills } from '../lib/prereqs.mjs';
 import { contentHash, fileAction, planFor } from '../lib/context.mjs';
 
@@ -24,7 +25,7 @@ function applyAppends(all, order, ctx, dry) {
         fs.mkdirSync(path.dirname(target), { recursive: true });
         fs.writeFileSync(target, next);
       }
-      appended.push({ to, pack: name, created: cur === null });
+      appended.push({ to, pack: name, created: cur === null, text: text.trim() });
     }
   }
   return appended;
@@ -32,7 +33,7 @@ function applyAppends(all, order, ctx, dry) {
 
 // The install record: what was installed, with which values, and a hash per
 // file so `--update` can tell rendered files from user-edited ones.
-function writeRecord(all, order, ctx, files, conflicts, prev) {
+function writeRecord(all, order, ctx, files, conflicts, prev, addedScripts, appended) {
   const fileHashes = { ...(prev?.files ?? {}) };
   for (const f of files) if (!conflicts.includes(f.dest)) fileHashes[f.dest] = { pack: f.pack, hash: contentHash(f.buf) };
   const packNames = [...new Set([...(prev?.packs ?? []).map((p) => p.name), ...order])];
@@ -51,18 +52,23 @@ function writeRecord(all, order, ctx, files, conflicts, prev) {
     tokens: { ...(prev?.tokens ?? {}), ...ctx.tokens },
     plugins,
     vendorSkills,
+    // Only what this engine appended, so remove never strips a line the user had.
+    appends: [...(prev?.appends ?? []), ...appended.filter((a) => !(prev?.appends ?? []).some((p) => p.to === a.to && p.text === a.text))],
+    packageScripts: { ...(prev?.packageScripts ?? {}), ...Object.fromEntries(addedScripts.map((n) => [n, ctx.packageScripts[n]])) },
     files: fileHashes,
   };
+  if (!Object.keys(rec.packageScripts).length) delete rec.packageScripts;
   fs.mkdirSync(path.join(ctx.dest, '.claude'), { recursive: true });
   fs.writeFileSync(path.join(ctx.dest, RECORD), JSON.stringify(rec, null, 2) + '\n');
 }
 
 /**
- * `render` — writes the selected template files, applies appends, merges
- * `.claude/settings.json` and `.mcp.json`, and writes the install record.
- * `--dry-run` computes the same report and writes nothing.
+ * Writes the selected template files, applies appends, adds `packageScripts`
+ * to package.json, merges `.claude/settings.json` and `.mcp.json`, and
+ * writes the install record. `--dry-run` computes the same report and writes
+ * nothing. Returns the report; exits on invalid options or missing tokens.
  */
-export function cmdRender(args) {
+export function renderPacks(args) {
   const { all, order, ctx, missingTokens, invalidOptions } = planFor(args);
   if (invalidOptions.length) die('invalid option values', { invalidOptions });
   if (missingTokens.length) die('missing token values — collect them first', { missingTokens });
@@ -85,7 +91,12 @@ export function cmdRender(args) {
     }
   }
 
-  report.appended = applyAppends(all, order, ctx, dry);
+  const appended = applyAppends(all, order, ctx, dry);
+  report.appended = appended.map(({ text: _text, ...a }) => a);
+
+  const scripts = mergePackageScripts(ctx.dest, ctx.packageScripts, dry);
+  if (scripts?.error) report.errors.push(scripts.error);
+  else if (scripts) report.packageScripts = scripts;
 
   const settings = mergeSettingsFile(all, order, ctx, dry);
   if (settings.error) report.errors.push(settings.error);
@@ -102,6 +113,9 @@ export function cmdRender(args) {
     if (todos.length) report.todos.push({ file: f.dest, placeholders: todos });
   }
 
-  if (!dry) writeRecord(all, order, ctx, files, report.conflicts, record);
-  out({ ok: report.errors.length === 0, dryRun: dry, packs: order, ...report, manualSteps: packTodos(all, order, ctx) });
+  if (!dry) writeRecord(all, order, ctx, files, report.conflicts, record, report.packageScripts?.added ?? [], appended);
+  return { ok: report.errors.length === 0, dryRun: dry, packs: order, ...report, manualSteps: packTodos(all, order, ctx) };
 }
+
+/** `render` — see renderPacks. */
+export const cmdRender = (args) => out(renderPacks(args));

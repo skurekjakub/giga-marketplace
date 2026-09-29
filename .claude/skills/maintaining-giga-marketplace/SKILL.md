@@ -17,7 +17,7 @@ company or person.
 |---|---|
 | `.claude-plugin/marketplace.json` | One entry per plugin: `name`, `source: ./plugins/<name>`, `description`, `category`, `tags` |
 | `plugins/{agent-architecture,research-planning,copilot-cli,npm-maintenance}/` | Plug-and-play: `.claude-plugin/plugin.json` + `skills/<skill>/SKILL.md` (+ `references/`, `scripts/`) |
-| `plugins/setup-ai/scripts/` | Node engine (no npm deps): `workspace.mjs` is the CLI entry (`catalog`, `detect`, `plan`, `prereqs`, `render`, `vendor`, `session-check`); `lib/` shared modules (templating, packs, settings, prerequisites, vendor skills, detection); `commands/` one module per command; `test/` the `node:test` suite |
+| `plugins/setup-ai/scripts/` | Node engine (no npm deps): `workspace.mjs` is the CLI entry (`catalog`, `detect`, `plan`, `prereqs`, `render`, `status`, `remove`, `vendor`, `session-check`); `lib/` shared modules (templating, packs, settings, prerequisites, vendor skills, detection); `commands/` one module per command; `test/` the `node:test` suite |
 | `plugins/setup-ai/hooks/hooks.json` | SessionStart → `node …/workspace.mjs session-check` (exec form) |
 | `plugins/setup-ai/skills/bootstrap-agent-workspace/` | The one wizard skill that drives the engine |
 | `plugins/setup-ai/templates/placeholders.json` | Global `{{TOKENS}}` shared by all packs |

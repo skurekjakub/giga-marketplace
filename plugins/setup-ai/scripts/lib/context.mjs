@@ -3,12 +3,17 @@ import fs from 'node:fs';
 import { RECORD, die, exists, isText, readJson, sha } from './util.mjs';
 import { detect } from './detect.mjs';
 import { loadPacks, resolvePacks, scanTokens, tokenCatalog } from './packs.mjs';
+import { VERIFY_SCRIPT_NAMES } from './package-scripts.mjs';
 
-/** `--values` file contents as `{ tokens, options }`. Exits when unreadable. */
+/**
+ * `--values` file contents as `{ tokens, options, packageScripts }` — or
+ * `args.valuesData` when a command renders from the install record. Exits
+ * when the file is unreadable.
+ */
 function loadValues(args) {
-  const v = args.values ? readJson(args.values, null) : {};
+  const v = args.valuesData ?? (args.values ? readJson(args.values, null) : {});
   if (v === null) die(`cannot read --values ${args.values}`);
-  return { tokens: v.tokens ?? {}, options: v.options ?? {} };
+  return { tokens: v.tokens ?? {}, options: v.options ?? {}, packageScripts: v.packageScripts ?? {} };
 }
 
 /** The `--packs` list. Exits when empty. */
@@ -24,14 +29,20 @@ export const readRecord = (dest) => readJson(path.join(dest, RECORD), null);
 /**
  * Evaluation context for conditions and rendering. `packs` — what `pack:`
  * conditions test — is the packs being rendered plus the ones the install
- * record says are already there, so adding a pack later never renders a file
- * as if its siblings were missing.
+ * record says are already there (minus `args.exclude`, the packs being
+ * removed), so adding a pack later never renders a file as if its siblings
+ * were missing.
  */
 export function ctxFor(args, order) {
-  const { tokens, options } = loadValues(args);
+  const { tokens, options, packageScripts } = loadValues(args);
   const dest = args.dest ?? process.cwd();
-  const installed = (readRecord(dest)?.packs ?? []).map((p) => p.name);
-  return { packs: [...new Set([...order, ...installed])], tokens, options, detect: detect(dest), dest };
+  const exclude = args.exclude ?? [];
+  const installed = (readRecord(dest)?.packs ?? []).map((p) => p.name).filter((n) => !exclude.includes(n));
+  const facts = detect(dest);
+  // A verify script the render is about to add counts as present, so defaults
+  // keyed on it (the prefer-verify-script hook) switch on.
+  if (Object.keys(packageScripts).some((n) => VERIFY_SCRIPT_NAMES.includes(n))) facts.flags.verifyScript = true;
+  return { packs: [...new Set([...order, ...installed])], tokens, options, packageScripts, detect: facts, dest };
 }
 
 // A value someone typed to get past a question is not a value: rendering it
@@ -97,3 +108,14 @@ export function fileAction(dest, f, record, args) {
   if (args.update && record?.files?.[f.dest]?.hash === cur) return 'update';
   return 'conflict';
 }
+
+/**
+ * Engine args that render from the install record instead of a values file:
+ * its tokens and options, with `packs` pointing at `order`.
+ */
+export const recordArgs = (dest, record, order, extra = {}) => ({
+  dest,
+  packs: order.join(','),
+  valuesData: { tokens: record.tokens ?? {}, options: record.options ?? {} },
+  ...extra,
+});

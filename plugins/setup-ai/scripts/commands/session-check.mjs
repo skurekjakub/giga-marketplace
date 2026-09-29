@@ -20,6 +20,7 @@ function runtimeNotes(all, record, dest) {
       if (!onPath(c.name)) notes.push(`${c.name} is not installed but the ${p.name} pack needs it (${c.why})`);
     }
     for (const e of all[p.name]?.requires?.env ?? []) {
+      if (e.when && !evalCond(e.when, ctx)) continue;
       if (!envVarSet(dest, e.name)) notes.push(`environment variable ${e.name} is not set but the ${p.name} pack needs it (${e.why})`);
     }
   }

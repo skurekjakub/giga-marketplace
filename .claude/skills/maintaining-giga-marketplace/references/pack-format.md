@@ -35,7 +35,7 @@ When they disagree, the engine wins — fix this file.
 
 - **Option keys are one global namespace** across all packs (the values file has a single
   `options` object). The engine refuses to load when two packs declare the same key, so
-  name them for the pack (`jiraSkills`, `writingSkills`), not generically (`skills`).
+  name them for the pack (`issueSkills`, `writingSkills`), not generically (`skills`).
 - `mcp` servers are merged into the target's `.mcp.json` (committed): secrets **must** be
   `${VAR}` references, with the variable listed in `requires.env`.
 
@@ -45,6 +45,7 @@ When they disagree, the engine wins — fix this file.
 - The wizard shows the merged prerequisites of the chosen packs and asks yes/no before installing anything; no aborts the install.
 - `appends` add text once (skipped when already present) — use them for files the user already owns (`CLAUDE.md`, `.gitignore`). Never ship those as `files/`.
 - `settings` is deep-merged; user values win; `@when` entries are dropped when false and empty arrays pruned.
+- `remove` is the inverse, driven by the install record: it deletes the pack's files still as rendered, takes out the appends the record says the engine wrote, removes the pack's hook commands and still-unchanged MCP servers, then re-renders the remaining packs with `--update`. Anything a pack writes must go through `files/`, `appends`, `settings` or `mcp` — a side channel (a hook script that writes files, an agent step) can't be removed. Add a remove round-trip assertion to the tests when you add a new kind of write.
 
 ## `files/**`
 

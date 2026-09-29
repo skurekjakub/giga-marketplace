@@ -63,8 +63,15 @@ export function detect(dest) {
     DEFAULT_BRANCH: originHead || localBranch || git(['branch', '--show-current']) || 'main',
     AI_DIR: '.ai',
   };
+  // Gates chained with && as VERIFY_CMD work, but a named script is easier to
+  // run, to allow in a hook, and to keep in step with CI — so the wizard offers
+  // to add one when the repo has several gates and no verify script.
+  let verifyScriptProposal = null;
   if (pm) {
     const gates = ['typecheck', 'lint', 'test', 'build'].filter((n) => n in scripts);
+    if (!verify && gates.length >= 2) {
+      verifyScriptProposal = { script: 'verify', command: gates.map(runScript).join(' && '), verifyCmd: runScript('verify') };
+    }
     const e2e = firstScript('test:e2e', 'e2e', 'test:playwright');
     if ('dev' in scripts) tokens.DEV_CMD = runScript('dev');
     if (verify) tokens.VERIFY_CMD = runScript(verify);
@@ -74,6 +81,8 @@ export function detect(dest) {
     if ('typecheck' in scripts) tokens.TYPECHECK_CMD = runScript('typecheck');
     if ('build' in scripts) tokens.BUILD_CMD = runScript('build');
   }
+  const gh = remote.match(/github\.com[:/]([^/]+\/[^/]+?)(?:\.git)?\/?$/);
+  if (gh) tokens.GITHUB_REPO = gh[1];
   if (flags.next) tokens.LOCAL_URL = 'http://localhost:3000';
   else if (flags.vite) tokens.LOCAL_URL = 'http://localhost:5173';
   tokens.UNIT_TEST_GLOB = exists(path.join(dest, '__tests__')) ? '__tests__/**' : exists(path.join(dest, 'test')) ? 'test/**' : '**/*.test.*';
@@ -92,6 +101,7 @@ export function detect(dest) {
     flags,
     tokens,
     options: { profile: flags.next ? 'nextjs' : 'generic' },
+    proposals: { verifyScript: verifyScriptProposal },
     suggestedPacks: ['baseline', 'hooks', 'review-agents', 'dev-workflow'],
     remote: remote || null,
   };

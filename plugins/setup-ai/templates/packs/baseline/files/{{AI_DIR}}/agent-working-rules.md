@@ -125,11 +125,14 @@ enforced on top of it:
 <!-- @endif -->
 - **When a run ends with a deferred-work list, ask which shape the user
   wants:** follow-up files or tracker issues.
-<!-- @if pack:issue-tracking -->
-  Tracker issues are filed with the `file-jira-issue` skill.
+<!-- @if pack:issue-tracking+option:issueSkills=file-jira-issue -->
+  Jira issues are filed with the `file-jira-issue` skill.
+<!-- @endif -->
+<!-- @if pack:issue-tracking+option:issueSkills=file-github-issue -->
+  GitHub issues are filed with the `file-github-issue` skill.
 <!-- @endif -->
 
-<!-- @if pack:tech-writing|pack:dev-workflow|pack:issue-tracking -->
+<!-- @if pack:tech-writing|pack:dev-workflow|pack:issue-tracking+option:issueSkills=test-issue -->
 ## 8. Tooling notes
 <!-- @endif -->
 
@@ -146,7 +149,7 @@ enforced on top of it:
   tool call is auto-denied and the run exits 0 having printed nothing.
 <!-- @endif -->
 
-<!-- @if pack:dev-workflow|pack:issue-tracking -->
+<!-- @if pack:dev-workflow|pack:issue-tracking+option:issueSkills=test-issue -->
 ### agent-browser
 
 - `press Alt+r` delivers a proper keydown with the modifier set.
