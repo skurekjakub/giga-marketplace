@@ -1,90 +1,73 @@
 # Preflight
 
-Run before reading the issue. Each check exists because skipping it has cost a run late,
-after the expensive work was done. Report the resolved result as a table, then continue.
+Run before reading the issue. Each check exists because skipping it costs a run late, after the
+expensive work was done. Report the resolved result as a table, then continue.
 
 ## 1. Jira reachable — hard
 
 ```
-mcp__jira-kentico__jira_get_issue  issueKey: <KEY>
+mcp__{{JIRA_MCP_SERVER}}__jira_get_issue  issueKey: <KEY>
 ```
 
 A result with `summary` and `issueType` is the gate. The MCP server is configured in
-`.mcp.json`; if the tool is absent, stop — there is no fallback that can read the custom
-fields Phase 1 needs, and without the issue there is nothing to test.
+`.mcp.json` and needs `JIRA_EMAIL` and `JIRA_API_TOKEN` in the environment; if the tool is
+absent or answers 401, stop — without the issue there is nothing to test.
 
-The same MCP posts the comment (`jira_add_comment`) and searches for duplicates
+The same server posts the comment (`jira_add_comment`) and searches for duplicates
 (`jira_search_issues`). Confirm all three are in the tool list.
 
 ## 2. The repository — hard
 
-This checkout is the repository under test; there is no separate clone to locate.
-
 ```bash
-/usr/bin/git fetch origin main
-/usr/bin/git status --porcelain
+git fetch origin {{DEFAULT_BRANCH}}
+git status --porcelain
 ```
 
-Record the `--porcelain` output verbatim as the baseline. Use `--porcelain`, not bare
-`status`: the rtk filter can drop untracked entries from the short form, and the end-of-run
-comparison is load-bearing. The checkout routinely carries other branches' untracked
-analysis files; they are not yours to touch.
+Record the `--porcelain` output verbatim as the baseline; the end-of-run comparison is
+load-bearing. Untracked files already there are not yours to touch.
 
-Inside a Claude worktree, `git` must be `/usr/bin/git` and one command per call — the
-rtk-wrapped `git` is refused there.
+## 3. Dependencies and generated files — hard
 
-## 3. Dependencies and generated indexes — hard
+Dependencies installed, and anything the app must generate before it can serve a request.
 
-```bash
-ls node_modules/.bin/next
-npm run build:indexes
-```
-
-The generated content index is untracked. Without it the dev server dies on its first
-request with `ENOENT … lib/corpus/index/generated/redirects-map.json`, which the rtk-filtered
-output reports only as "Errors: 1". In a fresh worktree `node_modules` is absent too:
-`cp -al <main checkout>/node_modules ./node_modules` (hard links — a symlink breaks
-dependency-cruiser and escapes `.gitignore`).
+> **Adapt me:** {{ListGeneratedPrerequisites}} — the commands this app needs before it can
+> start (for example a codegen or index-build script), and the error you see when they are
+> missing.
 
 ## 4. Instance mode — hard
 
-Decide now; it changes which evidence exists. Details and the dev/build split are in
+Decide now; it changes which evidence exists. Details in
 [`local-instances.md`](local-instances.md).
 
 | Mode | When | Gives |
 |---|---|---|
-| `dev` (3002) | Content, components, client behaviour | `/_next/mcp` (`get_errors`, `get_logs`), HMR, fastest |
-| `build` (3004) | Status codes, headers, redirects, caching, PPR shell, `base_url`, admin gate | The shipped behaviour; browser `console` only |
-| `url` (requester-supplied) | A preview or staging site someone else stands up | Reduced: no server logs, no framework errors |
+| `dev` | Content, components, client behaviour | Server logs, hot reload, fastest |
+| `build` | Status codes, headers, redirects, caching, production-only gates | The shipped behaviour |
+| `url` (requester-supplied) | A preview or staging site someone else stands up | Reduced: no server logs |
 
 ```bash
-curl -sf http://localhost:3002/api/health
+curl -sf -o /dev/null {{LOCAL_URL}} && echo up
 ```
 
-A 200 means the user's dev server is up — use it and do not start another. A connection
-refusal means you may start one (`npm run dev`, background) and you own it. Never run a
-second `next dev` in the same checkout.
+Up means the user's dev server is running — use it and do not start another. A connection
+refusal means you may start one (`{{DEV_CMD}}`, in the background) and you own it.
 
 ## 5. Browser tooling — hard for any page surface
 
 ```bash
 agent-browser --version
-curl -sS -X POST http://localhost:3002/_next/mcp \
-  -H 'Content-Type: application/json' \
-  -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | sed -n 's/^data: //p'
 ```
 
-`agent-browser` is the driver (snapshots, React tree, `errors`, `console`, `network`,
-emulation, recording, isolated `--session`s). `/_next/mcp` answers what the dev server
-knows — routes, compilation issues, server errors, logs — and exists only while
-`next dev` runs. Load the `next-dev-loop` skill before driving; run
-`agent-browser skills get core` for the command surface, which matches the installed
-version. The split is in
-[`docs/conventions/browser-tooling.md`](../../../../docs/conventions/browser-tooling.md).
+`agent-browser` is the driver (snapshots, `errors`, `console`, `network`, emulation,
+isolated `--session`s). Load the `agent-browser` skill for the command surface rather than
+working from memory. If it is missing, install it (`npm i -g agent-browser@latest`, then
+`agent-browser install`).
+<!-- @if profile:nextjs -->
 
-If `agent-browser` is missing or below 0.31.1, `npm i -g agent-browser@latest` and
-`agent-browser install`.
+For Next.js dev servers, `/_next/mcp` also answers what the framework knows — routes,
+compilation issues, server errors, logs — and exists only while `next dev` runs. Load the
+`next-dev-loop` skill before driving.
+<!-- @endif -->
 
 ## 6. Evidence directory — soft
 
@@ -92,7 +75,15 @@ If `agent-browser` is missing or below 0.31.1, `npm i -g agent-browser@latest` a
 mkdir -p .cache/test-issue/<KEY>-<yyyymmdd>
 ```
 
-`/.cache/` is gitignored. `agent-browser` writes screenshots to
-`~/.agent-browser/tmp/screenshots`; copy each one you cite into
-this directory under the caption you gave it, so the report's evidence survives the
-session. Do not put scratch files anywhere else in the tree.
+`.cache/` must be git-ignored. Copy each screenshot you cite into this directory under the
+caption you gave it, so the report's evidence survives the session.
+
+## Custom fields
+
+> **Adapt me.** If the {{JIRA_PROJECT}} project keeps test instructions, reproduction steps or
+> reporter text in custom fields, list them here so Phase 1 requests them with `extraFields`
+> — they are invisible otherwise.
+
+| Field id | Holds |
+|---|---|
+| `{{CustomFieldId}}` | {{WhatItHolds}} |

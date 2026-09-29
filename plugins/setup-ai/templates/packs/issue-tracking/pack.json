@@ -1,0 +1,118 @@
+{
+  "name": "issue-tracking",
+  "version": "0.1.0",
+  "title": "Jira issue filing & QA",
+  "summary": "Jira skills wired to the jira-mcp server (installed into .mcp.json): file-jira-issue drafts six-word, four-block tickets under the right epic with real ADF links; test-issue QA-verifies a ticket's fix against the app running locally and posts an honest verdict comment.",
+  "requires": {
+    "env": [
+      {
+        "name": "JIRA_EMAIL",
+        "why": "Atlassian account email the jira-mcp server authenticates with. Set it in your shell profile or the git-ignored .claude/settings.local.json env block — never in .mcp.json."
+      },
+      {
+        "name": "JIRA_API_TOKEN",
+        "why": "Atlassian API token (id.atlassian.com → Security → API tokens) for the jira-mcp server. Same place as JIRA_EMAIL; never committed."
+      }
+    ],
+    "vendorSkills": [
+      {
+        "source": "vercel-labs/agent-browser",
+        "skills": [
+          "agent-browser"
+        ],
+        "when": "option:jiraSkills=test-issue",
+        "why": "test-issue drives the app in a real browser."
+      }
+    ]
+  },
+  "recommends": [
+    "dev-workflow"
+  ],
+  "options": {
+    "jiraSkills": {
+      "type": "multi",
+      "prompt": "Which issue-tracking skills should be installed?",
+      "choices": [
+        {
+          "value": "file-jira-issue",
+          "label": "file-jira-issue",
+          "description": "Draft, confirm and file well-formed tickets.",
+          "default": true
+        },
+        {
+          "value": "test-issue",
+          "label": "test-issue",
+          "description": "QA-verify a ticket's fix locally and post a verdict comment.",
+          "default": true
+        }
+      ]
+    },
+    "codeWork": {
+      "type": "single",
+      "prompt": "Do codebase tickets go under one standing epic with a [layer] prefix on the summary?",
+      "choices": [
+        {
+          "value": "no",
+          "label": "No",
+          "description": "Tickets go under whatever epic fits.",
+          "default": true
+        },
+        {
+          "value": "yes",
+          "label": "Yes",
+          "description": "Asks for the epic key and installs a layer-prefix roster to fill in."
+        }
+      ]
+    }
+  },
+  "tokens": {
+    "JIRA_SITE": {
+      "prompt": "Jira Cloud site host",
+      "default": "your-team.atlassian.net"
+    },
+    "JIRA_CLOUD_ID": {
+      "prompt": "Jira Cloud tenant id",
+      "infer": "curl -s https://<JIRA_SITE>/_edge/tenant_info → cloudId"
+    },
+    "JIRA_PROJECT": {
+      "prompt": "Project key tickets are created in (e.g. ABC)"
+    },
+    "JIRA_MCP_SERVER": {
+      "prompt": "Name for the Jira MCP server in .mcp.json (tools become mcp__<name>__jira_*)",
+      "default": "jira"
+    },
+    "JIRA_CODE_EPIC": {
+      "prompt": "Epic key codebase tickets go under (e.g. ABC-123)"
+    }
+  },
+  "fileConditions": {
+    "dot-claude/skills/file-jira-issue/references/layer-prefixes.md": "option:codeWork=yes",
+    "dot-claude/skills/file-jira-issue": "option:jiraSkills=file-jira-issue",
+    "dot-claude/skills/test-issue": "option:jiraSkills=test-issue"
+  },
+  "mcp": {
+    "{{JIRA_MCP_SERVER}}": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "github:skurekjakub/jira-mcp#v1.2.0"
+      ],
+      "env": {
+        "NPM_CONFIG_ALLOW_GIT": "root",
+        "JIRA_SITE": "{{JIRA_SITE}}",
+        "JIRA_CLOUD_ID": "{{JIRA_CLOUD_ID}}",
+        "JIRA_PROJECT_KEY": "{{JIRA_PROJECT}}",
+        "JIRA_EMAIL": "${JIRA_EMAIL}",
+        "JIRA_API_TOKEN": "${JIRA_API_TOKEN}"
+      }
+    }
+  },
+  "appends": [
+    {
+      "to": ".gitignore",
+      "when": "option:jiraSkills=test-issue",
+      "text": ".cache/test-issue/"
+    }
+  ]
+}

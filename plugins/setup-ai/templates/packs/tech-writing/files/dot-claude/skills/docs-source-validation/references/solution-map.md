@@ -14,7 +14,7 @@
 Repository root: `{{SOURCE_REPO_PATH}}`
 Entry point / solution file: `{{SOLUTION_OR_ENTRY_POINT}}`
 Git remote: `{{SOURCE_REPO_URL}}`
-Primary branch: `{{DEFAULT_BRANCH}}`
+Primary branch: `{{SOURCE_DEFAULT_BRANCH}}`
 Language / runtime: `{{TECH_STACK}}`
 
 ---
@@ -84,7 +84,7 @@ Subdirectories: <!-- notable subdirectories, comma-separated -->
 
 <!-- fill in: where tests live and how they're named. Example format: -->
 
-Tests live in `{{TEST_DIR}}` and follow the pattern `{{TEST_NAMING_PATTERN}}`.
+Tests live in `{{SOURCE_TEST_DIR}}` and follow the pattern `{{TEST_NAMING_PATTERN}}`.
 
 Key test projects:
 - <!-- list the test projects an agent is most likely to consult for behavioral examples -->

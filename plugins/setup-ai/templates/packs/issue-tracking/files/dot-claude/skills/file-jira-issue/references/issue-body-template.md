@@ -1,71 +1,66 @@
-# Doc-backlog issue body
+# Issue body
 
 ## Why this shape
 
-Research on Jira ticket structure converges on four blocks: context with the
-"why" (the most-skipped, most-useful part), explicit scope, a testable
+Research on ticket structure converges on four blocks: context with the "why"
+(the most-skipped, most-useful part), explicit scope, a testable
 acceptance-criteria checklist (3–7 yes/no items), and references. The classic
 user-story form ("As a…, I want…") suits product features but reads contrived
-for a docs task. Sources:
+for engineering or docs tasks. Sources:
 [Atlassian on acceptance criteria](https://www.atlassian.com/work-management/project-management/acceptance-criteria),
-[AltexSoft on AC formats](https://www.altexsoft.com/blog/acceptance-criteria-purposes-formats-and-best-practices/),
-[GitLab technical-writing workflow](https://handbook.gitlab.com/handbook/product/ux/technical-writing/workflow/).
+[AltexSoft on AC formats](https://www.altexsoft.com/blog/acceptance-criteria-purposes-formats-and-best-practices/).
 
 ## Template
 
-Summary: feature-titled like the epic's siblings — no "Document…" prefix, no
+Summary: six words, feature- or defect-titled like the epic's siblings, no
 ticket keys (those belong in the body).
 
 ```
 Context
 
-<Release> adds <the feature, one or two sentences quoting what the source
-ticket claims — states, behaviors, audience> (<SOURCE-KEY>). <Why it matters:
-who consumes it and what it replaces.>
+<What this is about, one or two sentences quoting what the source ticket or
+finding claims (<SOURCE-KEY>)>. <Why it matters: who is affected and what it
+replaces or unblocks.>
 
-What to document
+What to do
 
-- <The thing itself: name, arguments, where it runs — and when the source
-  ticket doesn't name specifics, say "pull the specifics from the
-  implementation" instead of inventing them>
-- <Each behavior/state: what it means and what the reader does next>
+- <The change itself — and when the source doesn't name specifics, say "pull
+  the specifics from the implementation" instead of inventing them>
+- <Each behaviour or state: what it means and what happens next>
 - <Machine-facing surface: exit codes / output shapes, with an example>
-- <Placement: which existing pages host or link to the new content>
+- <Placement: which files, pages or components host the change>
 
 Acceptance criteria
 
 - <Testable yes/no item>
 - <3–7 total; if more, split the ticket>
-- Checked against shipped <release> behavior
 
 References
 
-- <SOURCE-KEY> — source story, fixVersion <release>
+- <SOURCE-KEY> — source ticket
+- <PR, doc or follow-up file>
 ```
 
-## Worked example
-
-DOC-3755 (for KX-25474, under epic DOC-3698 "31.9.0") follows this template
-verbatim — open it next to a new draft when in doubt.
+> **Template note:** once the project has a ticket that follows this shape
+> well, name it here as the worked example to open next to a new draft.
 
 ## Hyperlinks
 
-The markdown→ADF converter has no link support, and Jira Cloud does not
-auto-link issue keys or URLs in REST-created text — so mentions like
-`KX-25474` in a markdown body land dead. Pass the description as an ADF
-document instead (`jira_create_issue` and `jira_update_issue` both accept one
-in place of the string) with real link nodes where the mentions go.
+Jira Cloud does not auto-link issue keys or URLs in API-created text, and
+markdown-to-ADF converters in MCP servers often have no link support — so
+mentions like `PROJ-123` in a markdown body land dead. Send the description as
+an ADF document with real link nodes where the mentions go.
 
-Two node shapes, both verified to render:
+Two node shapes, both render:
 
 An in-sentence hyperlink — a `text` node with a `link` mark:
 
 ```json
 {
   "type": "text",
-  "text": "KX-25474",
+  "text": "PROJ-123",
   "marks": [
-    { "type": "link", "attrs": { "href": "https://kentico.atlassian.net/browse/KX-25474" } }
+    { "type": "link", "attrs": { "href": "https://{{JIRA_SITE}}/browse/PROJ-123" } }
   ]
 }
 ```
@@ -74,33 +69,21 @@ A smart-link chip (icon + summary + status, best in a References list) — an
 `inlineCard` node:
 
 ```json
-{ "type": "inlineCard", "attrs": { "url": "https://kentico.atlassian.net/browse/KX-25474" } }
+{ "type": "inlineCard", "attrs": { "url": "https://{{JIRA_SITE}}/browse/PROJ-123" } }
 ```
 
-The PUT replaces the whole description, so rebuild the full ADF doc
-(`{"fields": {"description": {"type": "doc", "version": 1, "content": [...]}}}`
-— paragraphs, `bulletList`/`listItem` wrappers, and the link nodes above where
-the mentions go):
+Through REST, the PUT replaces the whole description, so rebuild the full ADF
+doc (`{"fields": {"description": {"type": "doc", "version": 1, "content": [...]}}}`
+— paragraphs, `bulletList`/`listItem` wrappers, and the link nodes above):
 
 ```bash
 curl -s -o /dev/null -w "%{http_code}" -X PUT \
-  -u "$JIRA_EMAIL_KENTICO_JIRA:$JIRA_PAT_KENTICO_JIRA" \
+  -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
   -H "Content-Type: application/json" --data @description.json \
-  "https://kentico.atlassian.net/rest/api/3/issue/<KEY>"
+  "https://{{JIRA_SITE}}/rest/api/3/issue/<KEY>"
 ```
 
-204 means updated. Verify the render without opening a browser: GET the issue
-with `?expand=renderedFields&fields=description`. Both node shapes come back as
-anchors, told apart by their attributes:
-
-```html
-<a href="…/browse/KX-25474">KX-25474</a>                          <!-- link mark -->
-<a href="…/browse/KX-25474" title="smart-link" class="external-link"
-   rel="nofollow noreferrer">https://…/browse/KX-25474</a>        <!-- inlineCard -->
-```
-
-So grep for `title="smart-link"` to confirm an `inlineCard`, and read the
-anchor text to tell the two apart — a link mark shows the key, an `inlineCard`
-shows the bare URL and becomes a chip in the Jira UI. `jira_get_issue` cannot
-show any of this; its plain-text conversion drops marks entirely and swallows
-`inlineCard` nodes whole, leaving a leading space where the chip sits.
+204 means updated. Verify the render without a browser: GET the issue with
+`?expand=renderedFields&fields=description`. A link mark comes back as an
+anchor showing the key; an `inlineCard` as an anchor with
+`title="smart-link"` showing the bare URL (a chip in the Jira UI).

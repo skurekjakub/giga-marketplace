@@ -62,7 +62,7 @@
     {
       "name": "setup-ai",
       "source": "./plugins/setup-ai",
-      "description": "Bootstrap an agent workspace in any repo — one wizard skill that asks what to set up, then vendors and fills in template packs (working rules, hooks, review agents, dev workflows, issue tracking, tech writing), merges settings, and installs third-party skills via npx skills.",
+      "description": "Bootstrap an agent workspace in any repo — one wizard skill that asks what to set up, checks and installs prerequisites, then vendors and fills in template packs (working rules, hooks, review agents, dev workflows, Jira filing and QA with the jira-mcp server, tech writing), merges settings and .mcp.json, and installs third-party skills via npx skills. Requires Node.js.",
       "category": "setup",
       "tags": [
         "setup",

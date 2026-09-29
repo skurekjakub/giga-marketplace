@@ -116,6 +116,15 @@ function loadPacks() {
     if (!manifest) continue;
     packs[manifest.name] = { ...manifest, root: path.join(PACKS_DIR, name) };
   }
+  // Option keys share one namespace in the values file, so two packs must never
+  // declare the same key — one would silently answer for the other.
+  const owner = {};
+  for (const p of Object.values(packs)) {
+    for (const key of Object.keys(p.options ?? {})) {
+      if (owner[key] && owner[key] !== p.name) die(`option key "${key}" is declared by both ${owner[key]} and ${p.name}`);
+      owner[key] = p.name;
+    }
+  }
   return packs;
 }
 
@@ -267,6 +276,10 @@ function scanTokens(all, order, ctx) {
     }
     scan(JSON.stringify(pack.appends ?? []), `${name}/pack.json appends`);
     scan(JSON.stringify(filterSettings(pack.settings ?? {}, ctx)), `${name}/pack.json settings`);
+    for (const [key, def] of Object.entries(pack.mcp ?? {})) {
+      if (def['@when'] && !evalCond(def['@when'], ctx)) continue;
+      scan(key + JSON.stringify(def), `${name}/pack.json mcp`);
+    }
   }
   return found;
 }
@@ -418,6 +431,7 @@ function prereqStatus(all, order, ctx, dest) {
   });
   const vendorSkills = requiredVendorSkills(all, order, ctx).map((v) => ({ ...v, status: vendorSkillPresent(dest, v.skill) ? 'installed' : 'missing' }));
   const clis = requiredClis(all, order, ctx).map((c) => ({ ...c, status: onPath(c.name) ? 'installed' : 'missing' }));
+  const env = requiredEnv(all, order, ctx).map((e) => ({ ...e, status: envVarSet(dest, e.name) ? 'set' : 'missing' }));
   const node = vendorSkills.length
     ? { required: `>=${VENDOR_NODE_MIN.join('.')}`, have: process.versions.node, ok: nodeAtLeast(VENDOR_NODE_MIN), reason: 'npx skills (vendor skills)' }
     : null;
@@ -425,8 +439,43 @@ function prereqStatus(all, order, ctx, dest) {
     ...plugins.filter((p) => p.status !== 'installed'),
     ...vendorSkills.filter((v) => v.status === 'missing'),
     ...clis.filter((c) => c.status === 'missing' && !c.optional),
+    ...env.filter((e) => e.status === 'missing'),
   ];
-  return { plugins, vendorSkills, clis, node, allSatisfied: missing.length === 0 && (!node || node.ok) };
+  return { plugins, vendorSkills, clis, env, node, allSatisfied: missing.length === 0 && (!node || node.ok) };
+}
+
+function requiredEnv(all, order, ctx) {
+  const res = [];
+  for (const name of order) {
+    for (const e of all[name].requires?.env ?? []) {
+      if (e.when && !evalCond(e.when, ctx)) continue;
+      if (!res.some((r) => r.name === e.name)) res.push({ ...e, requiredBy: [name] });
+    }
+  }
+  return res;
+}
+
+// Secrets are never read or printed — only whether the variable exists in the
+// process environment or is declared in the git-ignored local settings file.
+function envVarSet(dest, name) {
+  if (process.env[name]) return true;
+  const local = readJson(path.join(dest, '.claude', 'settings.local.json'), {});
+  return Boolean(local?.env && name in local.env);
+}
+
+// MCP servers a pack declares, filtered by @when and rendered. Written to the
+// repo's .mcp.json (project scope, committed): values that are secrets must
+// stay ${VAR} references in pack.json.
+function packMcpServers(all, order, ctx) {
+  const servers = {};
+  for (const name of order) {
+    for (const [key, def] of Object.entries(all[name].mcp ?? {})) {
+      if (def['@when'] && !evalCond(def['@when'], ctx)) continue;
+      const { '@when': _, ...rest } = def;
+      servers[renderTokens(key, ctx.tokens)] = JSON.parse(renderTokens(JSON.stringify(rest), ctx.tokens));
+    }
+  }
+  return servers;
 }
 
 // ---------- vendor skills (npx skills) ----------
@@ -574,7 +623,7 @@ function cmdPlan(args) {
   const options = Object.fromEntries(order.flatMap((n) => Object.entries(all[n].options ?? {})));
   const optionDefaults = Object.fromEntries(Object.entries(options).map(([key, o]) => [key, defaultFor(o, ctx)]));
   const missingOptions = Object.keys(options).filter((k) => !(k in ctx.options));
-  out({ ok: true, packs: order, pulledIn, recommended, options, optionDefaults, missingOptions, prerequisites: prereqs, missingTokens, files,
+  out({ ok: true, packs: order, pulledIn, recommended, options, optionDefaults, missingOptions, prerequisites: prereqs, missingTokens, manualSteps: packTodos(all, order, ctx), files,
     conflicts: files.filter((f) => f.action === 'conflict').map((f) => f.dest) });
 }
 
@@ -585,6 +634,11 @@ function defaultFor(opt, ctx) {
   if (opt.type === 'multi') return opt.choices.filter(on).map((c) => c.value);
   if (opt.defaultFrom === 'detect') return ctx.detect.options?.[opt.key] ?? opt.default ?? null;
   return (opt.choices ?? []).find(on)?.value ?? opt.default ?? null;
+}
+
+// Manual steps a pack leaves the user (pack.json "todo"), filtered by "when".
+function packTodos(all, order, ctx) {
+  return order.flatMap((n) => (all[n].todo ?? []).filter((t) => !t.when || evalCond(t.when, ctx)).map((t) => ({ pack: n, text: t.text })));
 }
 
 function fileAction(dest, f, record, args) {
@@ -676,11 +730,32 @@ function cmdRender(args) {
     report.settings = changed ? 'merged' : 'unchanged';
   }
 
+  // MCP servers: merged into the project's .mcp.json; an existing server entry
+  // with the same name is the user's and is left untouched.
+  const servers = packMcpServers(all, order, ctx);
+  if (Object.keys(servers).length) {
+    const mcpPath = path.join(ctx.dest, '.mcp.json');
+    const cur = readJson(mcpPath, exists(mcpPath) ? null : {});
+    if (cur === null) report.errors.push('.mcp.json exists but is not valid JSON — MCP servers not merged');
+    else {
+      const next = structuredClone(cur);
+      next.mcpServers ??= {};
+      const kept = Object.keys(servers).filter((k) => k in next.mcpServers);
+      for (const [k, v] of Object.entries(servers)) if (!(k in next.mcpServers)) next.mcpServers[k] = v;
+      const changed = JSON.stringify(next) !== JSON.stringify(cur);
+      if (changed && !dry) fs.writeFileSync(mcpPath, JSON.stringify(next, null, 2) + '\n');
+      report.mcp = { servers: Object.keys(servers), keptExisting: kept, file: '.mcp.json', changed };
+    }
+  }
+
   // leftover tokens (errors) and skeleton placeholders (to-dos) in what we wrote
   for (const f of files) {
     if (!f.text || report.conflicts.includes(f.dest)) continue;
     for (const m of f.text.matchAll(TOKEN_RE)) report.errors.push(`${f.dest}: unfilled {{${m[1]}}}`);
-    const todos = [...new Set([...f.text.matchAll(TODO_RE)].map((m) => m[1]))];
+    // Fenced code is skipped: it legitimately holds {{…}} syntax of its own
+    // (Jira wiki markup, Handlebars, GitHub Actions).
+    const prose = f.text.replace(/^```[\s\S]*?^```/gm, '').replace(/`[^`\n]*`/g, '');
+    const todos = [...new Set([...prose.matchAll(TODO_RE)].map((m) => m[1]))];
     if (todos.length) report.todos.push({ file: f.dest, placeholders: todos });
   }
 
@@ -703,7 +778,7 @@ function cmdRender(args) {
     fs.mkdirSync(path.join(ctx.dest, '.claude'), { recursive: true });
     fs.writeFileSync(path.join(ctx.dest, RECORD), JSON.stringify(rec, null, 2) + '\n');
   }
-  out({ ok: report.errors.length === 0, dryRun: dry, packs: order, ...report });
+  out({ ok: report.errors.length === 0, dryRun: dry, packs: order, ...report, manualSteps: packTodos(all, order, ctx) });
 }
 
 function cmdVendor(args) {
@@ -741,6 +816,9 @@ function cmdSessionCheck(args) {
     for (const c of all[p.name]?.requires?.cli ?? []) {
       if (c.optional || (c.when && !evalCond(c.when, { packs: [], options: record.options ?? {}, tokens: {}, detect: null }))) continue;
       if (!onPath(c.name)) notes.push(`${c.name} is not installed but the ${p.name} pack needs it (${c.why})`);
+    }
+    for (const e of all[p.name]?.requires?.env ?? []) {
+      if (!envVarSet(dest, e.name)) notes.push(`environment variable ${e.name} is not set but the ${p.name} pack needs it (${e.why})`);
     }
   }
   const missing = (record.vendorSkills ?? []).filter((v) => !vendorSkillPresent(dest, v.skill));

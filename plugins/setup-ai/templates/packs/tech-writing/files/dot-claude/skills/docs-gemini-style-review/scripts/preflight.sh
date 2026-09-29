@@ -9,7 +9,7 @@
 
 set -u
 
-MODEL="gemini-3.8-flash-high"
+MODEL="{{AGY_MODEL}}"
 RUN_SMOKE=1
 FAILED=0
 
@@ -28,7 +28,7 @@ fail() { printf '  FAIL  %s\n' "$1"; FAILED=1; }
 hint() { printf '        → %s\n' "$1"; }
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-GUIDES="$REPO_ROOT/.ai/resources/styleguides"
+GUIDES="$REPO_ROOT/{{STYLE_GUIDE_DIR}}"
 
 echo "docs-gemini-style-review preflight"
 echo
@@ -39,7 +39,7 @@ if [ -n "$AGY_PATH" ]; then
   ok "on PATH at $AGY_PATH"
 else
   fail "agy not found on PATH"
-  hint "expected at ~/.local/bin/agy — check that ~/.local/bin is on PATH, or run 'agy install'"
+  hint "install agy and make sure its directory is on PATH"
   echo
   echo "Cannot continue without the CLI."
   exit 1
@@ -60,17 +60,23 @@ echo
 echo "Style guides"
 if [ -d "$GUIDES" ]; then
   ok "$GUIDES"
-  for f in docs-style-guide.md guides-style-guide.md word-list.md typography.md; do
-    if [ -r "$GUIDES/$f" ]; then
-      ok "$f ($(wc -c < "$GUIDES/$f" | tr -d ' ') bytes)"
+  FIRST_GUIDE=""
+  for f in "$GUIDES"/*.md; do
+    [ -e "$f" ] || continue
+    [ -n "$FIRST_GUIDE" ] || FIRST_GUIDE="$f"
+    if [ -r "$f" ]; then
+      ok "$(basename "$f") ($(wc -c < "$f" | tr -d ' ') bytes)"
     else
-      fail "$f missing or unreadable"
-      hint "refresh the vendored style materials per .ai/resources/README.md"
+      fail "$(basename "$f") unreadable"
     fi
   done
+  if [ -z "$FIRST_GUIDE" ]; then
+    fail "no .md style guides in $GUIDES"
+    hint "add the style guides the review is judged against"
+  fi
 else
-  fail "styleguides directory not found at $GUIDES"
-  hint "run from inside the kentico-docs repo, or refresh per .ai/resources/README.md"
+  fail "style guide directory not found at $GUIDES"
+  hint "run from inside the repository, or create {{STYLE_GUIDE_DIR}} with your style guides"
 fi
 echo
 
@@ -95,9 +101,11 @@ if [ "$RUN_SMOKE" -eq 1 ]; then
   echo "Tool permissions"
   # Reading a file is the smallest possible tool call, so this isolates the
   # permission layer from everything else the review does.
-  PERM="$(agy -p "Read the file .ai/resources/styleguides/word-list.md and reply with only its first heading line." \
+  GUIDE_REL="${FIRST_GUIDE#$REPO_ROOT/}"
+  EXPECT="$(grep -m1 '^#' "$FIRST_GUIDE" 2>/dev/null | sed 's/^#* *//' | cut -c1-20)"
+  PERM="$(agy -p "Read the file $GUIDE_REL and reply with only its first heading line." \
     --model "$MODEL" --mode plan --dangerously-skip-permissions --print-timeout 120s 2>&1)"
-  if printf '%s' "$PERM" | grep -qi 'terminology'; then
+  if [ -n "$EXPECT" ] && printf '%s' "$PERM" | grep -qiF "$EXPECT"; then
     ok "file reads work with --mode plan --dangerously-skip-permissions"
   elif printf '%s' "$PERM" | grep -qi 'permission'; then
     fail "tool calls are being denied"

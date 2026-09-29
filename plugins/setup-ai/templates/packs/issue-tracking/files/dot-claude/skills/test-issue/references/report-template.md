@@ -24,7 +24,7 @@ months. Keep them separate; detail lives in the report.
    or an `rg` hit is none of these.
 3. **Coverage added beyond the plan** — surfaces the diff reaches that no source named, and
    why. This is what separates testing from instruction-following; make it visible.
-4. **Supporting evidence** — unit run, `content:validate`, `curl` transcripts, each labelled
+4. **Supporting evidence** — unit run, validators, `curl` transcripts, each labelled
    with its layer. On a requester-supplied URL, which layers were unavailable.
 5. **Environment and state left behind** — instance mode, servers still running, a
    worktree, the evidence directory path. An inventory, not a caveat.
@@ -43,7 +43,7 @@ verified anything**; never transition the issue; never change a field.
 
 **Print it in the conversation before posting.** Nothing can edit or delete it afterwards.
 
-`mcp__jira-kentico__jira_add_comment` takes **Jira wiki markup**: `h3.` / `h4.` headings,
+`mcp__{{JIRA_MCP_SERVER}}__jira_add_comment` takes **Jira wiki markup**: `h3.` / `h4.` headings,
 `*` bullets, `*bold*`, `{{code}}`, `[text|url]` links, real newlines. Markdown headings and
 backticks render as literal text. Use this structure exactly:
 
@@ -52,8 +52,8 @@ h3. 🤖 Testing by AI - PASS ✅
 
 h4. Setup
 
-* *Fix tested* - {{<merge commit>}} on {{main}} ([PR <id>|<url>]), local {{build}} on :3004
-* *Environment* - standalone build, Chrome via agent-browser; before state from {{.ai/bugfixes/<dir>/before.md}}
+* *Fix tested* - {{<merge commit>}} on {{<branch>}} ([PR <id>|<url>]), local {{build}} at <url>
+* *Environment* - production build, Chrome via agent-browser; before state from {{<bugfix dir>/root-cause.md}}
 
 h4. Technical notes
 
@@ -82,7 +82,7 @@ h4. Unrelated bugs found ⚠️
 ** *Root cause:* <file / function, what is wrong>
 ** *Isolation:* <what pins the trigger>
 ** *Impact:* <latent or immediate>. *Not caused by this change.*
-** *Related:* [DOC-####|https://kentico.atlassian.net/browse/DOC-####] — <how>
+** *Related:* [<KEY>|https://<jira site>/browse/<KEY>] — <how>
 ```
 
 Formatting rules:
@@ -95,7 +95,7 @@ Formatting rules:
 - Pattern per item: `*Bold label* <emoji> → evidence`. Emoji: ✅ and ⚠️ in the body, one per
   item; 🤖 and the verdict emoji in the heading only.
 - Nested bullets (`**`) only for a bug's root cause / isolation / impact / related.
-- Every issue key is a link: `[DOC-3842|https://kentico.atlassian.net/browse/DOC-3842]`.
+- Every issue key is a link: `[{{JIRA_PROJECT}}-123|https://{{JIRA_SITE}}/browse/{{JIRA_PROJECT}}-123]`.
 - Leave out: layer-by-layer breakdowns, long sibling lists, process questions, suggestions
   about the ticket's wording, commentary on how testing was performed.
 
@@ -112,8 +112,8 @@ debug something that is not broken.
 Search first:
 
 ```
-mcp__jira-kentico__jira_search_issues
-  jql: project = DOC AND (text ~ "<symptom>" OR text ~ "<identifier>") ORDER BY created DESC
+mcp__{{JIRA_MCP_SERVER}}__jira_search_issues
+  jql: project = {{JIRA_PROJECT}} AND (text ~ "<symptom>" OR text ~ "<identifier>") ORDER BY created DESC
 ```
 
 Search on the visible symptom and on the code identifier, read the closest few rather than

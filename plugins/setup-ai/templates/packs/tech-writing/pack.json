@@ -1,0 +1,167 @@
+{
+  "name": "tech-writing",
+  "version": "0.2.0",
+  "title": "Tech-writing skills",
+  "summary": "Docs skills filled in with your product's specifics: release notes, hotfix notes, docs-vs-source validation, draw.io diagram authoring, and a Gemini (agy) second-opinion style review.",
+  "requires": {
+    "cli": [
+      {
+        "name": "agy",
+        "when": "option:writingSkills=docs-gemini-style-review",
+        "why": "docs-gemini-style-review runs the agy CLI headlessly for the second opinion."
+      },
+      {
+        "name": "python3",
+        "when": "option:writingSkills=docs-create-drawio-diagram+!platform:win32",
+        "why": "The draw.io export/decode scripts are Python."
+      },
+      {
+        "name": "python",
+        "when": "option:writingSkills=docs-create-drawio-diagram+platform:win32",
+        "why": "The draw.io export/decode scripts are Python."
+      }
+    ]
+  },
+  "options": {
+    "writingSkills": {
+      "type": "multi",
+      "prompt": "Which tech-writing skills should be installed?",
+      "choices": [
+        {
+          "value": "docs-write-release-notes",
+          "label": "Release notes",
+          "description": "User-facing release notes / changelog entries for a feature.",
+          "default": true
+        },
+        {
+          "value": "docs-write-hotfix-notes",
+          "label": "Hotfix notes",
+          "description": "\"Fixed issues\" changelog entries from tickets.",
+          "default": true
+        },
+        {
+          "value": "docs-source-validation",
+          "label": "Docs vs source validation",
+          "description": "Validate docs claims against the product's source repo.",
+          "default": true
+        },
+        {
+          "value": "docs-create-drawio-diagram",
+          "label": "draw.io diagrams",
+          "description": "Author editable .drawio.svg diagrams in the house style (needs Python).",
+          "default": false
+        },
+        {
+          "value": "docs-gemini-style-review",
+          "label": "Gemini style review",
+          "description": "Second-opinion prose review with the agy CLI against your style guides.",
+          "default": false
+        }
+      ]
+    }
+  },
+  "tokens": {
+    "PRODUCT_NAME": {
+      "prompt": "The product the docs describe"
+    },
+    "DOCS_LINK_SYNTAX": {
+      "prompt": "How documentation links are written on your docs platform (e.g. a component or markdown link form)"
+    },
+    "RELEASE_NOTES_PATH": {
+      "prompt": "Where release note files live in the docs repo"
+    },
+    "CHANGELOG_URL": {
+      "prompt": "Where the public changelog is published"
+    },
+    "CATEGORIES_FILE_PATH": {
+      "prompt": "File containing the official list of changelog categories"
+    },
+    "SOURCE_REPO_PATH": {
+      "prompt": "Local path of the product source checkout",
+      "infer": "sibling checkouts next to this repo"
+    },
+    "SOURCE_REPO_URL": {
+      "prompt": "Remote URL of the product source repo"
+    },
+    "SOURCE_DEFAULT_BRANCH": {
+      "prompt": "The product source repo's primary branch",
+      "default": "main"
+    },
+    "SOURCE_TEST_DIR": {
+      "prompt": "Where the test suite lives in the product source repo"
+    },
+    "SOLUTION_OR_ENTRY_POINT": {
+      "prompt": "The source repo's solution file or main entry point"
+    },
+    "TECH_STACK": {
+      "prompt": "The product source repo's tech stack, one line"
+    },
+    "REPO_NAME": {
+      "prompt": "The product source repo's name"
+    },
+    "TEST_NAMING_PATTERN": {
+      "prompt": "How tests are named in the product source repo (e.g. *Tests.cs)"
+    },
+    "ASSETS_ROOT": {
+      "prompt": "Root directory for docs image assets (e.g. public/assets)"
+    },
+    "STYLE_GUIDE_PATH": {
+      "prompt": "Your diagram style guide (shape libraries, palette, font)"
+    },
+    "EXAMPLE_DIAGRAM_PATH": {
+      "prompt": "A reference diagram in the house style"
+    },
+    "ELEMENT_COLOR": {
+      "prompt": "Brand colour for diagram shapes (hex)"
+    },
+    "CONNECTOR_COLOR": {
+      "prompt": "Brand colour for diagram connectors (hex)"
+    },
+    "BRAND_FONT": {
+      "prompt": "The font diagrams reference"
+    },
+    "MARKDOWN_SYNTAX_REF": {
+      "prompt": "Doc describing your docs platform's image/asset syntax"
+    },
+    "STYLE_GUIDE_DIR": {
+      "prompt": "Repo-relative folder holding the prose style guides",
+      "default": "{{AI_DIR}}/resources/styleguides"
+    },
+    "CONTENT_GLOB": {
+      "prompt": "Where docs content lives (glob, e.g. content/**)"
+    },
+    "AGY_MODEL": {
+      "prompt": "agy model id for style reviews (the highest reasoning tier)",
+      "default": "gemini-3.8-flash-high"
+    }
+  },
+  "fileConditions": {
+    "dot-claude/skills/docs-write-release-notes": "option:writingSkills=docs-write-release-notes",
+    "dot-claude/skills/docs-write-hotfix-notes": "option:writingSkills=docs-write-hotfix-notes",
+    "dot-claude/skills/docs-source-validation": "option:writingSkills=docs-source-validation",
+    "dot-claude/skills/docs-create-drawio-diagram": "option:writingSkills=docs-create-drawio-diagram",
+    "dot-claude/skills/docs-gemini-style-review": "option:writingSkills=docs-gemini-style-review"
+  },
+  "todo": [
+    {
+      "when": "option:writingSkills=docs-write-release-notes|option:writingSkills=docs-write-hotfix-notes",
+      "text": "Replace the generic examples in the release/hotfix notes skills with real entries from your changelog — the examples anchor the voice."
+    },
+    {
+      "when": "option:writingSkills=docs-source-validation",
+      "text": "Fill in docs-source-validation/references/solution-map.md; offer to generate it by exploring the source repo (with consent — it's a large read)."
+    },
+    {
+      "when": "option:writingSkills=docs-write-hotfix-notes",
+      "text": "Create the categories file at CATEGORIES_FILE_PATH if it doesn't exist — the hotfix skill hard-depends on it."
+    },
+    {
+      "when": "option:writingSkills=docs-create-drawio-diagram",
+      "text": "Confirm the diagram style guide and example diagram exist at the paths given."
+    },
+    {
+      "when": "option:writingSkills=docs-gemini-style-review",
+      "text": "Put the prose style guides in STYLE_GUIDE_DIR and fill in the guide table and corpus quirks in the skill; then run its preflight.sh."
+    }
+  ]
+}

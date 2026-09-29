@@ -1,7 +1,7 @@
 ---
 name: docs-source-validation
 description: >-
-  Validate {{PRODUCT_NAME}} documentation against the actual product source code in {{SOURCE_REPO_PATH}}. Use this skill whenever you need to verify that documentation (existing or planned) accurately describes the real product behavior, compare what changed in a commit or branch, or trace source code logic to confirm a documented claim. Trigger on phrases like 'validate against source', 'check the source code', 'is this accurate', 'diff against {{DEFAULT_BRANCH}}', 'what changed in this commit/branch', 'trace this behavior in source', 'verify this API exists', or any request that involves cross-referencing documentation with the product codebase. Also trigger when the user mentions the product repo, product source, or asks about how a feature actually works under the hood.
+  Validate {{PRODUCT_NAME}} documentation against the actual product source code in {{SOURCE_REPO_PATH}}. Use this skill whenever you need to verify that documentation (existing or planned) accurately describes the real product behavior, compare what changed in a commit or branch, or trace source code logic to confirm a documented claim. Trigger on phrases like 'validate against source', 'check the source code', 'is this accurate', 'diff against {{SOURCE_DEFAULT_BRANCH}}', 'what changed in this commit/branch', 'trace this behavior in source', 'verify this API exists', or any request that involves cross-referencing documentation with the product codebase. Also trigger when the user mentions the product repo, product source, or asks about how a feature actually works under the hood.
 ---
 
 > **Template skill — fill in before use.** Replace every `{{...}}` placeholder with your product's specifics (search for `{{` to find them all), fill out `references/solution-map.md` with your repository's layout, then delete this block.
@@ -11,8 +11,8 @@ description: >-
 > | `{{PRODUCT_NAME}}` | The product whose documentation is being validated |
 > | `{{SOURCE_REPO_PATH}}` | Where the product source repo is expected, relative to the docs repository root |
 > | `{{SOURCE_REPO_URL}}` | Clone URL for the product source repository |
-> | `{{DEFAULT_BRANCH}}` | The repository's primary branch (e.g., `main`, `master`) |
-> | `{{TEST_DIR}}` | Where the test suite lives in the source repo |
+> | `{{SOURCE_DEFAULT_BRANCH}}` | The repository's primary branch (e.g., `main`, `master`) |
+> | `{{SOURCE_TEST_DIR}}` | Where the test suite lives in the source repo |
 
 # Source Validation
 
@@ -40,15 +40,15 @@ git clone {{SOURCE_REPO_URL}} {{SOURCE_REPO_PATH}}
 
 Proceed to the workflows below only once the repo is confirmed present.
 
-Once confirmed, pull latest {{DEFAULT_BRANCH}} so you never validate against stale code (cheap, do it even if recent):
+Once confirmed, pull latest {{SOURCE_DEFAULT_BRANCH}} so you never validate against stale code (cheap, do it even if recent):
 
 ```bash
-git -C {{SOURCE_REPO_PATH}} fetch origin {{DEFAULT_BRANCH}}
-git -C {{SOURCE_REPO_PATH}} checkout {{DEFAULT_BRANCH}}
-git -C {{SOURCE_REPO_PATH}} pull origin {{DEFAULT_BRANCH}}
+git -C {{SOURCE_REPO_PATH}} fetch origin {{SOURCE_DEFAULT_BRANCH}}
+git -C {{SOURCE_REPO_PATH}} checkout {{SOURCE_DEFAULT_BRANCH}}
+git -C {{SOURCE_REPO_PATH}} pull origin {{SOURCE_DEFAULT_BRANCH}}
 ```
 
-Exception: when validating against a specific commit (a feature's merge commit), fetching is enough — check out or `git show` that commit instead of {{DEFAULT_BRANCH}}.
+Exception: when validating against a specific commit (a feature's merge commit), fetching is enough — check out or `git show` that commit instead of {{SOURCE_DEFAULT_BRANCH}}.
 
 Then pick the matching workflow below. If the user's intent doesn't map to one, ask.
 
@@ -75,13 +75,13 @@ The core workflow. The user has a documentation claim (a sentence, a page, a pla
 
 - Check deprecation markers (`[Obsolete]`, `@Deprecated`, `@deprecated`, etc.) — the API might exist but be deprecated.
 - Look at interfaces, not just implementations — the documented contract might differ from a specific implementation.
-- Check the test suite (`{{TEST_DIR}}`) for behavioral examples when a method's purpose is ambiguous.
+- Check the test suite (`{{SOURCE_TEST_DIR}}`) for behavioral examples when a method's purpose is ambiguous.
 - For UI behavior, check both the backend and the client-side frontend code.
 - Issue tracker tickets and PR descriptions state intent; only the code states what shipped. When they disagree, the code wins.
 
 ---
 
-## Workflow: Diff a commit or PR against {{DEFAULT_BRANCH}}
+## Workflow: Diff a commit or PR against {{SOURCE_DEFAULT_BRANCH}}
 
 The user wants to understand what changed in a specific commit or merged PR.
 
@@ -102,17 +102,17 @@ The user wants to understand what changed in a specific commit or merged PR.
 
 ---
 
-## Workflow: Diff a branch against {{DEFAULT_BRANCH}}
+## Workflow: Diff a branch against {{SOURCE_DEFAULT_BRANCH}}
 
 ```bash
 git -C {{SOURCE_REPO_PATH}} fetch origin <branch-name>
-git -C {{SOURCE_REPO_PATH}} diff {{DEFAULT_BRANCH}}...origin/<branch-name>
+git -C {{SOURCE_REPO_PATH}} diff {{SOURCE_DEFAULT_BRANCH}}...origin/<branch-name>
 ```
 
 For large diffs, scope to the areas the user cares about:
 
 ```bash
-git -C {{SOURCE_REPO_PATH}} diff {{DEFAULT_BRANCH}}...origin/<branch-name> -- <module-path>/
+git -C {{SOURCE_REPO_PATH}} diff {{SOURCE_DEFAULT_BRANCH}}...origin/<branch-name> -- <module-path>/
 ```
 
 Then categorize and summarize as in the commit diff workflow.

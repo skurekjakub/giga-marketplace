@@ -1,6 +1,7 @@
 ---
 name: docs-gemini-style-review
-description: Get a second-opinion prose review from a different model — the `agy` CLI running Gemini 3.8 Flash headlessly — over docs MDX judged against the vendored style guides in `.ai/resources/styleguides/`, or over the JSDoc and inline comments a branch added or reworded, judged against `docs/conventions/comment-policy.md`. Use whenever MDX under `content/` has just been written or edited and the wording should be checked before it is committed — "style check this", "review this copy", "run the gemini review", "does this match the style guide", "second opinion on this wording", "check this against the word list", "is this admonition ok" — and reach for it proactively after drafting any new user-facing docs prose, because the author who just wrote a paragraph is the person least able to see its terminology and voice drift. Also use it at the end of a branch to audit the comments the branch wrote — "audit the jsdocs on this branch", "gemini review the comments". Not for auditing a whole docs PR for factual accuracy against product source (that is `docs-documentation-review`), and not for reviewing code logic.
+description: >-
+  Get a second-opinion prose review from a different model — the `agy` CLI running Gemini headlessly — over {{PRODUCT_NAME}} docs judged against the style guides in `{{STYLE_GUIDE_DIR}}`, or over the doc comments and inline comments a branch added or reworded, judged against `docs/conventions/comment-policy.md`. Use whenever docs under `{{CONTENT_GLOB}}` have just been written or edited and the wording should be checked before it is committed — "style check this", "review this copy", "run the gemini review", "does this match the style guide", "second opinion on this wording", "check this against the word list", "is this admonition ok" — and reach for it proactively after drafting any new user-facing docs prose, because the author who just wrote a paragraph is the person least able to see its terminology and voice drift. Also use it at the end of a branch to audit the comments the branch wrote — "audit the doc comments on this branch", "gemini review the comments". Not for checking docs for factual accuracy against product source (that is `docs-source-validation`), and not for reviewing code logic.
 ---
 
 # Gemini style review
@@ -25,7 +26,7 @@ A single paragraph or admonition gets pasted into the prompt with the guide it i
 
 A branch-wide pass — every comment a refactor reworded, every JSDoc a feature added — does not. Pasting a diff and a guide into one prompt produces a prompt the reviewer skims, and the assembly is where the errors creep in. For that shape the reviewer reads the repo itself, and the prompt carries what it cannot infer:
 
-- **the rulebook by path**, told to read it first (`docs/conventions/comment-policy.md` for code comments; the style guide from the table for docs prose);
+- **the rulebook by path**, told to read it first (`docs/conventions/comment-policy.md` for code comments; the style guide from the table below for docs prose);
 - **what the branch did**, in a few sentences: the shape before, the shape after, the names involved;
 - **an inventory of files, one line each, with what changed in that file** — "the JSDoc on `fakeProvider`'s `def` parameter" beats "the file"; a file where nothing under review changed is listed too, with "confirm and move on", so the reviewer does not go looking;
 - **how to find the changed lines** — `git diff <base> HEAD -- <file>` — and that unchanged lines in a changed file are out of scope;
@@ -35,36 +36,33 @@ The reviewer is capable of opening the files and the diff itself; what it lacks 
 
 ## Pick the right style guide
 
-The repo vendors several, and they disagree on purpose — a reference page and a tutorial are not held to the same standard.
+Style guides can disagree on purpose — a reference page and a tutorial are not held to the same standard. Feed the whole file for the audience; it is the yardstick for a single callout and for a whole new page alike.
+
+> **Template note:** map your content areas to the guides in `{{STYLE_GUIDE_DIR}}`.
 
 | What you edited | Feed it |
 |---|---|
-| `content/documentation/**`, `content/13/**`, `content/k*/**` | `docs-style-guide.md` |
-| `content/guides/**`, `content/modules/**` | `guides-style-guide.md` |
-| Anything with product nouns, feature names, UI labels | `word-list.md` — always, alongside the above |
-| Headings, capitalization, dashes, lists, code formatting | `typography.md` |
-| A diagram | `drawio-diagrams.md` |
-
-`docs-style-guide.md` and `guides-style-guide.md` are the complete rulesets — one file per audience, no short variant. Feed the whole file; it is the yardstick for a single admonition and for a whole new page alike.
+| {{ContentArea}} | {{StyleGuideFile}} |
+| Anything with product nouns, feature names, UI labels | the word list / terminology guide — always, alongside the above |
 
 ## Preflight
 
 Run this first. Every environment failure here surfaces at the call site as the same symptom — the review command exits successfully having printed nothing — so without a preflight you will spend the next several minutes rewriting a prompt that was never the problem.
 
 ```bash
-.claude/skills/docs-gemini-style-review/scripts/preflight.sh
+bash ${CLAUDE_SKILL_DIR}/scripts/preflight.sh
 ```
 
 It checks the CLI is on PATH, that the model is offered (which round-trips to the service, so it also catches an expired login), that the style guides are present and readable, that print mode answers at all, and that a file read survives the permission layer. Each failure prints its own remedy. `--model <id>` checks a different tier; `--skip-smoke` skips the two live calls when you only want the local checks.
 
 ## Running it
 
-`agy` is at `~/.local/bin/agy`. `agy models` lists what is available; `gemini-3.8-flash-{low,medium,high}` are the reasoning tiers of the same model, and a style review wants `high`.
+`agy models` lists what is available. Models newer than your training data exist — don't claim a listed model is made up. Reasoning tiers of one model are offered as separate ids; a style review wants the highest tier (`{{AGY_MODEL}}` by default).
 
 ### The normal case — let it read the files
 
 ```bash
-agy -p "$(cat prompt.txt)" --model gemini-3.8-flash-high --mode plan --dangerously-skip-permissions --print-timeout 30m
+agy -p "$(cat prompt.txt)" --model {{AGY_MODEL}} --mode plan --dangerously-skip-permissions --print-timeout 30m
 ```
 
 Write the prompt to a file in the scratchpad first; a heredoc into `prompt.txt` keeps backticks and `$` intact and keeps the shell argument readable. This is the form for the inventory-shaped prompt above. Redirect the output to a second scratchpad file and run it in the background — a branch-wide pass reads a dozen files and the diff and takes several minutes.
@@ -88,14 +86,14 @@ For one short block, pasting the guide and the block into the prompt is the reli
 
 ```bash
 { cat prompt-head.txt
-  cat .ai/resources/styleguides/docs-style-guide.md
+  cat {{STYLE_GUIDE_DIR}}/<style-guide>.md
   printf '\n\n===== WORD LIST =====\n'
-  cat .ai/resources/styleguides/word-list.md
+  cat {{STYLE_GUIDE_DIR}}/<word-list>.md
   printf '\n\n===== BLOCK UNDER REVIEW =====\n'
-  sed -n '61,71p' content/13/integrating-3rd-party-systems.mdx
+  sed -n '61,71p' <file under review>
 } > prompt.txt
 
-agy -p "$(cat prompt.txt)" --model gemini-3.8-flash-high \
+agy -p "$(cat prompt.txt)" --model {{AGY_MODEL}} \
   --mode plan --dangerously-skip-permissions --print-timeout 30m
 ```
 
@@ -115,10 +113,10 @@ A run whose output is empty or a single line means the reviewer was denied a too
 
 ## What every prompt must carry
 
-These four points are what separate a useful review from a page of false positives. They are corpus facts the reviewer has no way to know:
+These points are what separate a useful review from a page of false positives. They are corpus facts the reviewer has no way to know:
 
-- **`\-` is an intentional escape**, left by the converter that produced this corpus. Say so explicitly or the reviewer will report every `read\-only` and `open\-source` as a typo and bury the real findings.
-- **JSX tags are repo constructs, not prose.** `<PageLink>`, `<ExternalLink>`, `<Admonition>` and friends are how this corpus links and calls out; the reviewer judges the words, not the markup.
+- **Markup is not prose.** Components, shortcodes or directives (for example `<Callout>` in MDX, `{% include %}` in Liquid) are how the corpus links and calls out; the reviewer judges the words, not the markup.
+- **Corpus quirks.** {{CorpusQuirksTheReviewerMustBeTold}} — escapes, generated markup or conventions that look like mistakes and aren't. Say each one explicitly or the reviewer reports every instance and buries the real findings.
 - **Only the named block is under review.** State it twice if the block sits inside a long page.
 - **Do not edit any files.** Plan mode already enforces this, but saying it stops the reviewer wasting its turn planning an edit.
 
