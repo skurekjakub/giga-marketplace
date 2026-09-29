@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# SessionStart hook (giga-hooks generic version) — injects AGENTS.md + project
+# memory index + current branch as additional context. Fires on startup AND
+# after compaction to prevent post-compaction identity-doc decay.
+#
+# Portability: the Claude memory directory is computed from CLAUDE_PROJECT_DIR
+# using Claude Code's canonical path-mangling (replace / with -). Works for any
+# project that lives under your home or anywhere mountable.
+
+set -euo pipefail
+
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+
+# Claude Code mangles the project path by replacing / with -.
+# Example: /home/jakub/repositories/foo → -home-jakub-repositories-foo
+mangled=$(printf '%s' "$PROJECT_DIR" | sed 's|/|-|g')
+MEMORY_DIR="${HOME}/.claude/projects/${mangled}/memory"
+
+agents_md=""
+if [ -f "${PROJECT_DIR}/AGENTS.md" ]; then
+    agents_md=$(cat "${PROJECT_DIR}/AGENTS.md")
+fi
+
+memory_index=""
+if [ -f "${MEMORY_DIR}/MEMORY.md" ]; then
+    memory_index=$(cat "${MEMORY_DIR}/MEMORY.md")
+fi
+
+current_branch=""
+if git -C "${PROJECT_DIR}" rev-parse --git-dir >/dev/null 2>&1; then
+    current_branch=$(git -C "${PROJECT_DIR}" branch --show-current 2>/dev/null || echo "")
+fi
+
+# Bash parameter-substitution JSON-escaper (faster than character-loop).
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+context="<project-context-on-session-start-or-compact>
+PROJECT_DIR: ${PROJECT_DIR}
+BRANCH: ${current_branch}
+
+==== AGENTS.md ====
+${agents_md}
+
+==== Project memory index (MEMORY.md) ====
+${memory_index}
+
+Read individual memory files at ${MEMORY_DIR}/<name>.md when their hooks match what you're doing.
+</project-context-on-session-start-or-compact>"
+
+context_escaped=$(escape_for_json "$context")
+
+# Emit JSON per the platform's expected shape.
+# Claude Code expects nested hookSpecificOutput regardless of plugin vs project
+# install context — the prior CLAUDE_PLUGIN_ROOT gate was wrong for project hooks
+# (that var is only set inside plugin context) and caused content to be silently
+# dropped. Cursor uses a different top-level key. Copilot CLI is treated as
+# Claude Code-compatible.
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+    printf '{\n  "additional_context": "%s"\n}\n' "$context_escaped"
+else
+    printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$context_escaped"
+fi
+
+exit 0
