@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { RECORD, die, exists, out, pluginVersion, readJson } from '../lib/util.mjs';
+import { RECORD, die, exists, lf, out, pluginVersion, readJson } from '../lib/util.mjs';
 import { evalCond } from '../lib/conditions.mjs';
 import { leftoverTokens, renderTokens, todoPlaceholders } from '../lib/template.mjs';
 import { buildFiles, packTodos } from '../lib/packs.mjs';
@@ -19,8 +19,13 @@ function applyAppends(all, order, ctx, dry) {
       const text = renderTokens(a.text, ctx.tokens);
       const target = path.join(ctx.dest, to);
       const cur = exists(target) ? fs.readFileSync(target, 'utf8') : null;
-      if (cur !== null && cur.includes(text.trim())) continue;
-      const next = cur === null ? renderTokens(a.create ?? '', ctx.tokens) + text + '\n' : cur.replace(/\s*$/, '\n\n') + text + '\n';
+      // Compare and write in the file's own line endings: a CRLF checkout
+      // (core.autocrlf) must neither miss a multi-line append nor mix EOLs.
+      if (cur !== null && lf(cur).includes(text.trim())) continue;
+      const eol = cur?.includes('\r\n') ? '\r\n' : '\n';
+      const next = cur === null
+        ? renderTokens(a.create ?? '', ctx.tokens) + text + '\n'
+        : cur.replace(/\s*$/, eol + eol) + text.replace(/\n/g, eol) + eol;
       if (!dry) {
         fs.mkdirSync(path.dirname(target), { recursive: true });
         fs.writeFileSync(target, next);

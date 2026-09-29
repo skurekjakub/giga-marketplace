@@ -255,6 +255,25 @@ test('removing every pack leaves the repo as it was, apart from enabledPlugins',
   assert.ok(res.pluginsNoLongerRequired.some((p) => p.id === 'research-planning@giga-marketplace'));
 });
 
+test('a CRLF checkout (core.autocrlf) neither duplicates appends on re-render nor keeps them on remove', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  engine('render', '--dest', repo.dir, '--packs', 'baseline,hooks,dev-workflow', '--values', repo.values);
+  for (const f of ['.gitattributes', '.gitignore', 'CLAUDE.md']) {
+    const p = path.join(repo.dir, f);
+    fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace(/\n/g, '\r\n'));
+  }
+  // Act
+  const again = engine('render', '--dest', repo.dir, '--packs', 'baseline,hooks,dev-workflow', '--values', repo.values);
+  const removed = engine('remove', '--dest', repo.dir, '--packs', 'hooks');
+  // Assert
+  assert.deepEqual(again.appended, []);
+  assert.equal(removed.ok, true, JSON.stringify(removed.errors));
+  assert.equal(fs.existsSync(path.join(repo.dir, '.gitattributes')), false);
+  assert.match(fs.readFileSync(path.join(repo.dir, '.gitignore'), 'utf8'), /\r\n/);
+});
+
 test('remove refuses a pack that another installed pack requires', (t) => {
   // Arrange
   const repo = scratchRepo();

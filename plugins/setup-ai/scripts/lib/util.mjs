@@ -32,6 +32,9 @@ export const readJson = (p, fallback) => {
 
 export const exists = (p) => fs.existsSync(p);
 
+/** Text with CRLF line endings turned into LF. */
+export const lf = (s) => s.replace(/\r\n/g, '\n');
+
 /** Short content hash used to tell user-edited files from rendered ones. */
 export const sha = (buf) => crypto.createHash('sha256').update(buf).digest('hex').slice(0, 16);
 

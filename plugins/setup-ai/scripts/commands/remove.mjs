@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { GLOBAL_TOKENS, RECORD, die, exists, out, readJson } from '../lib/util.mjs';
+import { GLOBAL_TOKENS, RECORD, die, exists, lf, out, readJson } from '../lib/util.mjs';
 import { evalCond } from '../lib/conditions.mjs';
 import { renderTokens } from '../lib/template.mjs';
 import { loadPacks } from '../lib/packs.mjs';
@@ -66,7 +66,10 @@ function removeAppends(all, record, removing, remaining, ctx, dry) {
   for (const [to, entries] of byFile) {
     const target = path.join(ctx.dest, to);
     if (!exists(target)) continue;
-    let text = fs.readFileSync(target, 'utf8');
+    // Match on LF text and write back in the file's own line endings (a CRLF checkout).
+    const raw = fs.readFileSync(target, 'utf8');
+    const crlf = raw.includes('\r\n');
+    let text = lf(raw);
     const removed = entries.filter((a) => text.includes(a.text));
     // Appends land at the end of the file, so the last occurrence is ours.
     for (const a of removed) {
@@ -74,12 +77,12 @@ function removeAppends(all, record, removing, remaining, ctx, dry) {
       text = text.slice(0, at) + text.slice(at + a.text.length);
     }
     if (!removed.length) continue;
-    text = text.replace(/(\r?\n){3,}/g, '$1$1').replace(/\s*$/, '\n');
+    text = text.replace(/\n{3,}/g, '\n\n').replace(/\s*$/, '\n');
     const stub = entries.some((a) => a.created) ? stubs.find((st) => st.to === to && st.create)?.create ?? '' : null;
     const deletedFile = stub !== null && (text.trim() === '' || text.trim() === stub);
     if (!dry) {
       if (deletedFile) fs.rmSync(target);
-      else fs.writeFileSync(target, text);
+      else fs.writeFileSync(target, crlf ? text.replace(/\n/g, '\r\n') : text);
     }
     res.push({ from: to, lines: removed.length, deletedFile });
   }
