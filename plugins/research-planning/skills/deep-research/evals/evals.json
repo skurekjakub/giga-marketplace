@@ -1,0 +1,75 @@
+{
+  "skill_name": "deep-research",
+  "rubric": {
+    "source": "Adapted from the LLM-judge criteria in Anthropic's multi-agent research system write-up: factual accuracy, citation accuracy, completeness, source quality, tool efficiency.",
+    "criteria": [
+      "factual_accuracy: every Verdict and Reasoning claim matches the text of the evidence it cites",
+      "citation_accuracy: check-claims.mjs exits 0 and the cited snippets actually support the claims, not just appear in the file",
+      "completeness: every part of the question and every README contract section required at the run's size is present",
+      "source_quality: findings rest on primary or secondary tiers; seo and ai-summary sources never carry a finding alone",
+      "tool_efficiency: effort matches the size table; no subagents on a Small run, no fourth search round without a stated reason"
+    ],
+    "grading": "One judge call per run, scoring each criterion 0.0-1.0 plus pass/fail. A human reads every failing run and a sample of passing runs."
+  },
+  "evals": [
+    {
+      "id": 1,
+      "name": "time-pressure-behaviour",
+      "prompt": "I need to know in the next hour whether the major static-site hosts return a 404 status or a 200 soft-404 for a missing path. Just tell me in chat, no need for files.",
+      "expected_output": "A research record with a probe script in evidence/, raw probe output for each named host, a comparator table with the measured date, and a short chat recap pointing at the README. The record is written despite the 'no files' instruction, and the reply says why in one line.",
+      "files": [],
+      "expectations": [
+        "Creates a research/NNN-<slug>/ folder (or uses the project's existing research location) before the verdict is written",
+        "Reads references/behaviour-questions.md",
+        "Saves a probe script and its raw output in evidence/",
+        "Measures each host with the same script and the same case classes",
+        "README Reasoning items each carry a [NN: \"...\"] citation and check-claims.mjs is run",
+        "Chat reply is shorter than the README's Verdict plus Reasoning"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "blocked-primary-source",
+      "prompt": "Deep research what the original announcement of <a product that was announced on a site behind a bot challenge> actually promised, versus how tech press summarised it.",
+      "expected_output": "capture.mjs is run on the announcement; when the direct and Markdown attempts are blocked, the Wayback snapshot is used. If no snapshot exists, the source is listed as 'not used' with the reason and the verdict is scoped to what the secondary captures support. No claim about the announcement's wording rests on a search snippet.",
+      "files": [],
+      "expectations": [
+        "Runs capture.mjs on the primary source and records the fetch route in MANIFEST.tsv",
+        "Does not quote a search-result snippet or a fetch-tool summary as the announcement's wording",
+        "If the source stays blocked, the README Sources section lists it as 'not used' with the reason",
+        "Press summaries are captured with a tier and compared to the announcement in a triangulation table",
+        "Disagreements between press outlets appear under 'Unresolved conflicts' or are settled by a cited primary quote"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "internet-trend-source-question",
+      "prompt": "deep research the <recent fan-art trend name> trend on the internet",
+      "expected_output": "Treated as a source question: an anchor source (a meme encyclopedia entry) is captured, then the originals and reporting it points to. Each source is graded, numbers that change are dated in a triangulation table, competing accounts of the origin are tested against the dated timeline in the steelman, and conflicts the evidence does not settle are listed. No HTTP probe or consumer test is attempted.",
+      "files": [],
+      "expectations": [
+        "Reads references/source-questions.md and does not run an HTTP probe",
+        "Every capture in MANIFEST.tsv has a tier other than 'unknown'",
+        "Platform AI summaries (for example trending-page digests) are tiered ai-summary and do not carry a finding alone",
+        "Engagement numbers in the README each carry the date and source that observed them",
+        "README has an 'Unresolved conflicts' section, filled in or saying 'None found'",
+        "The steelman is a competing account of what happened, checked against the timeline",
+        "check-claims.mjs exits 0 before the reply"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "small-question-sizing",
+      "prompt": "Research whether the latest LTS release of Node still ships a built-in fetch. Keep it quick.",
+      "expected_output": "Sized Small: one or two search rounds, the release notes or docs captured, a short README (Verdict, Reasoning, Sources, Files) and no subagents. The folder and the citation check still happen.",
+      "files": [],
+      "expectations": [
+        "Dispatches no subagents",
+        "Runs at most two search rounds",
+        "Still creates the record folder with evidence/ and MANIFEST.tsv",
+        "README contains Verdict, Reasoning, Sources and Files, and Reasoning cites the captured release notes",
+        "check-claims.mjs is run"
+      ]
+    }
+  ]
+}

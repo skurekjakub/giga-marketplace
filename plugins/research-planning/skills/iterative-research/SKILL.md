@@ -75,6 +75,7 @@ Queries:
   - <query 2>
   - <query 3>
 Synthesis: <one paragraph — named patterns spotted, strongest signal, gaps>
+Fetched: <sources opened this round; evidence numbers when a record keeps captures, e.g. 04–07>
 
 ## Round 2 — deepen
 Queries:
@@ -82,6 +83,7 @@ Queries:
   - <query 2>
   - <query 3>
 Synthesis: <one paragraph — what confirmed, what disconfirmed, new specifics>
+Fetched: <sources opened this round; evidence numbers when a record keeps captures, e.g. 04–07>
 
 ## Round 3 — verify
 Queries:
@@ -89,11 +91,14 @@ Queries:
   - <query 2>
   - <query 3>
 Synthesis: <one paragraph — concrete takeaways with sources>
+Fetched: <sources opened this round; evidence numbers when a record keeps captures, e.g. 04–07>
 
 ## Final takeaways
 - <takeaway> — [source]
 - <takeaway> — [source]
 ```
+
+The `Fetched:` line ties each round to what it actually read. When the rounds feed a `deep-research` record, list the evidence numbers `capture.mjs` assigned, so the trail and `evidence/` can be cross-checked. Write "none" when a round only searched.
 
 When the research is **embedded** in a larger task (you're researching to inform a prompt, agent, or implementation you're about to write), collapse the structure into terse one-liners and skip the formal headings — but still do three rounds with synthesis between them. The discipline is the same; only the user-facing format gets compressed.
 
