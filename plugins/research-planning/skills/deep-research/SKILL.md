@@ -1,138 +1,106 @@
 ---
 name: deep-research
 description: >-
-  Use when a question about behaviour has to be measured rather than remembered and the answer must outlive the conversation — "research this", "compare what the vendors do", "is X the right call", "what does the standard actually say", a claim in a draft post or a design doc nobody has verified, a design decision the project's docs do not settle, "go deep on", "use whatever it takes". Produces a durable research record with verbatim evidence. Not for a single-fact lookup (use iterative-research or a direct fetch), and not for making the change itself — once the question is answered, the project's feature or bugfix workflow takes over.
+  Use when a question has to be answered from measurements or captured sources rather than memory, and the answer must outlive the conversation — "research this", "deep research X", "go deep on", "use whatever it takes", "compare what the vendors do", "what does the standard actually say", "is X the right call", "how did this trend / meme / controversy start", "what is the internet saying about X", a claim in a draft post or a design doc nobody has verified, a design decision the project's docs do not settle. Not for a single-fact lookup (use research-planning:iterative-research or a direct fetch), and not for making the change itself — once the question is answered, the project's feature or bugfix workflow takes over.
 ---
 
 # Deep research
 
-Answers a question by measuring, and leaves the measurements behind. The deliverable is a
-record under `research/NNN-<slug>/` at the repo root (or wherever the project already keeps
-research) — a `README.md` a later session or a post can cite, a `research-trail.md`, and an
-`evidence/` folder of verbatim captures. The chat reply is a recap of the README, never the
-answer's only home.
+Answers a question from evidence and leaves the evidence behind. The deliverable is a record
+under `research/NNN-<slug>/` at the repo root, or wherever the project already keeps research
+records (look for an existing `NNN-<slug>/` folder with an `evidence/` inside). The record holds
+a `README.md` a later session can cite, a `research-trail.md`, and an `evidence/` folder of
+verbatim captures. The chat reply recaps the README; it is never the answer's only home.
 
-**A verdict with no `evidence/` behind it is an opinion.** Without the record, an agent asked
-the same question a week later re-derives it; with a summary instead of a capture, it inherits
-the transcription error (a vendor table with two cells merged into one is the classic case).
-Web search results and the project's own docs are claims to test, not findings — a design doc
-that says "same behaviour as vendor X" is exactly the claim that turns out wrong for the case
-that matters.
+**A verdict with no `evidence/` behind it is an opinion.** Search results, fetch-tool
+summaries and the project's own docs are claims to test, not findings.
 
 ## Prerequisites
 
-| Need | Skill |
+| Need | Use |
 |---|---|
-| The web rounds | `research-planning:iterative-research` — **REQUIRED SUB-SKILL**; its rounds go into `research-trail.md` |
-| Reading a pile of repo documents | a subagent on a strong model (for example `model: "opus"`) |
+| The web rounds | **REQUIRED SUB-SKILL:** `research-planning:iterative-research`; its rounds go into `research-trail.md` |
+| Capturing a web source | `node ${CLAUDE_SKILL_DIR}/scripts/capture.mjs <record>/evidence <url> --tier <tier>` |
+| Checking the README's citations | `node ${CLAUDE_SKILL_DIR}/scripts/check-claims.mjs <record>` |
 | Claiming the record is complete | `superpowers:verification-before-completion`, if installed |
+
+A fetch tool that answers through a summarising model is not a capture. It can find a page;
+`capture.mjs` is what saves it.
+
+## Pick the question type
+
+| The question is about… | Read | Example |
+|---|---|---|
+| How a system behaves: a site, an API, a library, a tool | `references/behaviour-questions.md` | "Does our 404 page answer Markdown when asked?" |
+| What sources say: a trend, a history, a controversy, the state of a field | `references/source-questions.md` | "What is the X meme and where did it start?" |
+| Both | both, behaviour steps first | "Do vendors really do what their docs claim?" |
+
+## Size the effort
+
+| Size | Signal | Rounds | Subagents | README |
+|---|---|---|---|---|
+| Small | One claim to confirm or refute | 1–2 | none | Verdict, Reasoning, Sources, Files |
+| Standard | A question with a few angles | 3 | a document reader if the repo has relevant docs | full contract |
+| Large | A decision with comparators, or a contested topic | 3, plus targeted fetches | reader, plus the verifier | full contract |
+
+Every size gets the folder, the evidence and the citation check. Size changes how much you
+gather, not whether you record it.
 
 ## The order
 
-**Create a todo per step before starting.** A research run with no checklist is how the
-consumer test or the trail quietly goes missing.
+**Create a todo per step before starting.**
 
-1. **Mint the record first.** List `research/` — highest `NNN` plus one, never reused.
-   Write `README.md` with only the question: as the user asked it, then as a falsifiable
-   statement ("a request for a missing page should get the HTML 404 because …"). Everything
-   after this step writes into the folder.
-2. **Ground truth from the repo, with locators.** Read the code path yourself (`file:line`).
-   Dispatch a subagent for the documents — design docs, plans, bugfix notes, eval notes, the
-   tests that pin today's behaviour, any upstream project this one derives from — with the
-   brief: quote, cite `file:line`, say where a document is silent, offer no recommendation. Its
-   report is saved verbatim as an evidence file; you do not retype it.
-3. **Measure the subject.** Write the measurement as a script in `evidence/` and save its raw
-   output. The script declares its inputs at the top so it can be re-run against anything.
-   Cover at least: a case that has the feature, a case that exists without it, a case that
-   does not exist at all, and any edge class the implementation lets through.
-   *HTTP example:* a probe whose rows are URLs and whose columns are status, content type,
-   `vary`, `cache-control`, `x-robots-tag`, `link`, and length or redirect target.
-4. **Measure the comparators with the same script.** The vendors or implementations the user
-   named (in the order they named them), then the ones the domain makes obvious, then any
-   upstream. Same case classes each. A vendor claim from a blog post, a search summary, or a
-   design doc is not a measurement until the script has run against that vendor. Long batches
-   go in the background one target at a time; the raw output is the evidence file, not your
-   paraphrase.
-5. **Measure the consumer.** What the real client sends and what it does with the answer.
-   *HTTP example:* point the actual tool (a fetch tool, `curl` with the tool's headers, a
-   crawler's documented user agent) at an echo endpoint such as `https://httpbin.org/headers`;
-   then point the same tool at the live URL under question and record what reaches the model —
-   a tool that drops the body of every non-2xx response changes the verdict. Save both.
-6. **Primary sources, verbatim.** Standards and specs: fetch the text and quote the deciding
-   paragraphs with section numbers. Vendor documentation and packages: download the package
-   (for npm, `npm view <pkg> dist.tarball`), keep the README and the source that decides, and
-   note version and date. A source the fetch tool cannot read is retried with
-   `curl -H 'Accept: text/markdown'`, then plain `curl`; a source that stays unreadable is
-   listed as "not used" with the reason.
-7. **The web rounds.** `iterative-research`, three rounds of three, each round's queries and
-   synthesis written into `research-trail.md` as it happens. Fetch the primary sources the
-   rounds surface (step 6) rather than trusting their snippets.
-8. **Steelman before verdict.** Write the strongest case for the current behaviour and answer
-   it point by point. Then the verdict, the recommendation, and — when the answer implies a
-   change — a "what would change" map: files, tests, documents, with `file:line`, marked as a
-   map. Side findings the research surfaced but did not settle get their own section; each one
-   also becomes a follow-up in the project's usual place (a follow-ups folder, a tracker issue)
-   or a line saying it was consciously dropped.
-9. **Write the README to the contract below**, then the file index. Every number, header
-   value and vendor behaviour in it points at an evidence file. Re-read `evidence/` before
-   claiming a measurement you remember taking.
-10. **Reply.** A recap that stands on its own — verdict, the load-bearing evidence, the
-    recommendation, the side findings — pointing at the README. The record exists before the
-    reply is written.
-
-## `README.md` — the contract
-
-In this order. Scale each section to the question; a narrow question gets a short README, not a
-missing section.
-
-1. **Header** — what was measured, against what, on which date, from which branch; what the
-   research changed (nothing) and where the change lives once it lands.
-2. **Question** — as asked, then falsifiable.
-3. **Verdict** — one paragraph, the answer and the single strongest reason.
-4. **Reasoning** — numbered lines of evidence, each with its evidence-file pointer; the
-   comparator table (target × decides-by × the case classes, measured date) sits here.
-5. **The steelman** — the current behaviour's best case, answered.
-6. **Recommendation** — the rule, and the open sub-choices with a recommendation each.
-7. **What would change** — the map, marked as a map; or "nothing".
-8. **Side findings** — out of scope, surfaced for a decision, each with its follow-up.
-9. **Sources** — every URL used, with a clause on what it settled.
-10. **Files** — the evidence index: one line per file, what it holds.
-
-`research-trail.md` follows the `iterative-research` output format. `evidence/` files are
-numbered in the order they were captured, named for what they hold, and never edited after
-capture; a later measurement is a new file. Exclude `research/*/evidence/` from formatters so
-captures stay byte-exact.
+1. **Mint the record.** Number = highest existing `NNN` plus one, never reused. Write
+   `README.md` holding only the question, as asked and then as a falsifiable statement.
+2. **Ground truth from the repo**, when the repo has any. Read the code path yourself and cite
+   `file:line`. For a pile of documents, dispatch a reader subagent with this brief: quote,
+   cite `file:line`, say where a document is silent, offer no recommendation. Save its report
+   verbatim as an evidence file.
+3. **Gather**, by question type (the reference file you picked). Every source goes through
+   `capture.mjs` with a tier. A source that stays unreadable after the script's fallbacks is
+   kept in the manifest and listed in the README as "not used", with the reason.
+4. **The web rounds.** Run `iterative-research` and write each round to `research-trail.md` as
+   it happens, with a `Fetched:` line of the evidence numbers it produced. Capture the primary
+   sources the rounds surface instead of trusting their snippets.
+5. **Steelman before verdict.** A behaviour question gets the strongest case for the current
+   behaviour; a source question gets the strongest competing account of what happened. Answer
+   it point by point.
+6. **Write the README** to `references/readme-template.md`. Each Reasoning item carries at
+   least one quoted citation `[NN: "verbatim snippet"]`.
+7. **Verify.** Run `check-claims.mjs` until it passes. For Large runs, also dispatch a verifier
+   subagent with the brief in the template, and save its report as an evidence file.
+8. **Reply.** Give a recap that stands on its own (verdict, the load-bearing evidence,
+   unresolved conflicts, recommendation) and point at the README. The record exists before the
+   reply is written.
 
 ## Subagents
 
-- Every dispatch names its model; the document reader and any reviewer get a strong one.
-- A brief names the evidence file the subagent writes and its format, so its captures land in
-  the record without passing through your context. The final report is saved verbatim beside
-  them.
-- Research happens in the primary checkout; the change it recommends is the workflow that
-  branches. Don't switch the session into a worktree while a subagent is still working in the
-  primary checkout.
+- Every dispatch names its model; the reader and the verifier get a strong one.
+- A brief names the evidence file the subagent writes, so its output lands in the record
+  without passing through your context. Its final report is saved verbatim.
+- Research happens in the primary checkout. Don't switch the session into a worktree while a
+  subagent is still working there.
 
 ## Rationalizations
 
 | Excuse | Reality |
 |---|---|
-| "The user needs this in an hour; chat is faster than a record" | The record is the answer. A chat answer is gone by the next session and the evidence with it. |
-| "The subagent's table is right there, I'll summarise it" | You will merge two cells. The subagent writes the file; you point at it. |
-| "The design doc / the post already says what it does" | Measure it. Docs describe intent, not behaviour. |
-| "Search results say vendor X does Y" | Run the measurement against vendor X. Results describe their docs, not their edge cases. |
-| "The behaviour is documented, the consumer test is overkill" | The decisive fact — for example a fetch tool that drops 4xx bodies — is often documented nowhere. |
-| "The source didn't fetch, I'll cite the summary" | Try `Accept: text/markdown`, then plain `curl`; if it still fails, say "not used" and why. |
-| "I remember the number" | Read it back from `evidence/`. |
-| "This is a small question, the folder is ceremony" | A small question gets a short README in the same folder shape, not a chat answer. |
+| "The user needs this in an hour; chat is faster" | The record is the answer. A chat answer is gone next session, and the evidence with it. |
+| "The fetch tool already gave me the gist" | A summary is not a capture. Run `capture.mjs`; quote from the `.txt`. |
+| "The subagent's table is right there, I'll summarise it" | Summaries merge cells. The subagent writes the file; you point at it. |
+| "The docs / the post / the search result say it does X" | Measure it, or capture the primary source. Docs describe intent; results describe docs. |
+| "The source is blocked, I'll cite the snippet" | `capture.mjs` already tried Markdown and the Wayback Machine. Still blocked means "not used". |
+| "I remember the number" | Read it back from `evidence/`. Numbers that change carry the date they were seen. |
+| "Small question, the folder is ceremony" | A small question gets a short README in the same folder, not a chat answer. |
+| "check-claims passed, so it's right" | It proves the quote exists, not that the claim follows. Read each claim against its quote. |
 
 ## Red flags — stop
 
 - A verdict written before `evidence/` has a capture in it
-- A comparator row in the README with no raw output behind it
-- A number, header value or quotation in the README that no evidence file contains
-- "Measured" with no date, or a date with no target named
+- A README claim with no `[NN: "…"]` behind it, or `check-claims.mjs` not run
+- A source of tier `seo` or `ai-summary` carrying a finding alone
+- Two sources disagreeing and the README picking one without saying so
+- A changing number (likes, views, prices, versions) with no observed-at date
 - A subagent report paraphrased into the README instead of saved
-- The chat reply longer than the README's verdict and reasoning
 
-Any of these: stop, produce the missing capture, then continue.
+Any of these: stop, produce the missing capture or section, then continue.
