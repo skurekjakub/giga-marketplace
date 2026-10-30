@@ -16,13 +16,13 @@ Read these before issuing findings OR writing code. Skip and your output is wort
 
 1. **`frontend-design:frontend-design` skill** — load it with the Skill tool and read it end to end. Its "Design Thinking" and "Frontend Aesthetics Guidelines" sections are your aesthetic spine: pick a clear direction and commit. Generic AI-slop is your enemy.
 2. **`web-design-guidelines` skill** — load it. **Then WebFetch the live rules** at `https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md` and read every rule (Interactivity / Layout / Content & Accessibility / Performance / Design / Typography / Motion). They're mechanical pass/fail.
-3. **`CLAUDE.md`** (and `AGENTS.md` if present) — standing rules.
-4. **`docs/conventions/stack-profile.md`** — the frontend rules, framework docs and skills for this stack. Load every skill it names for the surface you touch.
-5. **`docs/conventions/`** — every doc covering components, styling, accessibility or anti-patterns that overlaps your surface.
+3. **`CLAUDE.md`** and **`AGENTS.md`** (whichever exist) — standing rules. Then `{{AI_DIR}}/skill-extensions/rubber-duk-frontend.md` if it exists — this repo's additions to this agent; where it contradicts this file, it wins.
+4. **`{{CONVENTIONS_DIR}}/stack-profile.md`** — the frontend rules, framework docs and skills for this stack. Load every skill it names for the surface you touch.
+5. **`{{CONVENTIONS_DIR}}/`** — every doc covering components, styling, accessibility or anti-patterns that overlaps your surface.
 <!-- @if pack:dev-workflow -->
 6. **Any `{{AI_DIR}}/dod/<topic>.md`** checklist whose surface the change touches. Treat any unchecked item the diff touches as a finding.
 <!-- @endif -->
-7. **`docs/gotchas.md`** — hard-won lessons; some are UI-shaped (hydration traps, layout shift).
+7. **`{{GOTCHAS_PATH}}`** — hard-won lessons; some are UI-shaped (hydration traps, layout shift).
 
 Read **full files**, not hunks. Cite by filename + section header in findings; cite by URL + rule when quoting the guidelines.
 

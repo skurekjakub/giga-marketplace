@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PreToolUse hook matching the Azure DevOps pull-request tools. Carries
-# {{AI_DIR}}/resources/pr-guidelines.md into context on every call, and exits 2 (Claude
+# {{PR_GUIDE_PATH}} into context on every call, and exits 2 (Claude
 # Code's "deny" signal for PreToolUse) when a body exceeds the ADO API's limit.
 #
 # Format is the guidelines file's job, not this hook's. The only enforced rule
@@ -20,7 +20,7 @@ esac
 body=$(echo "$input" | jq -r '.tool_input.description // ""' 2>/dev/null || echo "")
 
 MAX_CHARS=4000
-GUIDELINES="${CLAUDE_PROJECT_DIR:-.}/{{AI_DIR}}/resources/pr-guidelines.md"
+GUIDELINES="${CLAUDE_PROJECT_DIR:-.}/{{PR_GUIDE_PATH}}"
 
 rules() {
     if [ -r "$GUIDELINES" ]; then

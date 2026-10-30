@@ -15,9 +15,10 @@ company or person.
 
 | Path | What |
 |---|---|
-| `.claude-plugin/marketplace.json` | One entry per plugin: `name`, `source: ./plugins/<name>`, `description`, `category`, `tags` |
+| `.claude-plugin/marketplace.json` | One entry per plugin: `name`, `source: ./plugins/<name>`, `description`, `category`, `tags` (setup-ai's entry also carries its `version`) |
 | `plugins/{agent-architecture,research-planning,copilot-cli,npm-maintenance}/` | Plug-and-play: `.claude-plugin/plugin.json` + `skills/<skill>/SKILL.md` (+ `references/`, `scripts/`) |
-| `plugins/setup-ai/scripts/` | Node engine (no npm deps): `workspace.mjs` is the CLI entry (`catalog`, `detect`, `plan`, `prereqs`, `render`, `status`, `remove`, `vendor`, `session-check`); `lib/` shared modules (templating, packs, settings, prerequisites, vendor skills, detection); `commands/` one module per command; `test/` the `node:test` suite |
+| `plugins/setup-ai/scripts/` | Node engine (no npm deps): `workspace.mjs` is the CLI entry (`catalog`, `detect`, `plan`, `diff`, `prereqs`, `render`, `status`, `remove`, `vendor`, `session-check`); `lib/` shared modules (templating, packs, settings and in-place JSON edits, prerequisites, vendor skills, detection and repo scanning, marketplace provenance); `commands/` one module per command; `test/` the `node:test` suites (engine, hooks) |
+| `plugins/setup-ai/CHANGELOG.md` | Keep a Changelog, one section per setup-ai version — `status` shows bootstrapped repos the entries newer than their recorded version |
 | `plugins/setup-ai/hooks/hooks.json` | SessionStart → `node …/workspace.mjs session-check` (exec form) |
 | `plugins/setup-ai/skills/bootstrap-agent-workspace/` | The one wizard skill that drives the engine |
 | `plugins/setup-ai/templates/placeholders.json` | Global `{{TOKENS}}` shared by all packs |
@@ -43,7 +44,7 @@ company or person.
 
 ## Template pack changes
 
-REQUIRED: read `references/pack-format.md` before touching `pack.json`, `files/**`, `placeholders.json` or `detect()`. Bump the pack's `version` on every change — `session-check` tells bootstrapped repos to update when it moves — and bump `setup-ai`'s `plugin.json` version with it. Adding or removing a pack also means editing the pack list in setup-ai's `plugin.json` description **and** its marketplace entry.
+REQUIRED: read `references/pack-format.md` before touching `pack.json`, `files/**`, `placeholders.json` or `detect()`. Bump the pack's `version` on every change — `session-check` tells bootstrapped repos to update when it moves — and bump `setup-ai`'s `plugin.json` version with it (and its marketplace entry's `version`), with a `CHANGELOG.md` entry for the new version. Adding or removing a pack also means editing the pack list in setup-ai's `plugin.json` description **and** its marketplace entry.
 
 Either kind: keep the plugin/pack catalog in `README.md` in step.
 

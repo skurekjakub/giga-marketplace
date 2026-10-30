@@ -26,7 +26,7 @@ A single paragraph or admonition gets pasted into the prompt with the guide it i
 
 A branch-wide pass — every comment a refactor reworded, every JSDoc a feature added — does not. Pasting a diff and a guide into one prompt produces a prompt the reviewer skims, and the assembly is where the errors creep in. For that shape the reviewer reads the repo itself, and the prompt carries what it cannot infer:
 
-- **the rulebook by path**, told to read it first (`docs/conventions/comment-policy.md` for code comments; the style guide from the table below for docs prose);
+- **the rulebook by path**, told to read it first (`{{COMMENT_POLICY_PATH}}` for code comments; the style guide from the table below for docs prose);
 - **what the branch did**, in a few sentences: the shape before, the shape after, the names involved;
 - **an inventory of files, one line each, with what changed in that file** — "the JSDoc on `fakeProvider`'s `def` parameter" beats "the file"; a file where nothing under review changed is listed too, with "confirm and move on", so the reviewer does not go looking;
 - **how to find the changed lines** — `git diff <base> HEAD -- <file>` — and that unchanged lines in a changed file are out of scope;

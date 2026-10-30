@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { exists, readJson } from './util.mjs';
+import { editJson } from './json-edit.mjs';
 import { evalCond } from './conditions.mjs';
 import { renderTokens } from './template.mjs';
 import { requiredPlugins } from './prereqs.mjs';
@@ -49,20 +50,50 @@ export function deepMerge(target, src) {
   return target;
 }
 
-// Two packs (or two runs) adding the same matcher produce two entries; fold
-// entries with an identical matcher into one and dedupe their commands.
-function mergeHookEntries(settings) {
-  for (const [event, entries] of Object.entries(settings.hooks ?? {})) {
-    const byMatcher = new Map();
+/**
+ * The project hook script a hook command ends up running, as its name under
+ * `.claude/hooks/` — through `bash ".../.claude/hooks/<name>"`, a direct
+ * path, or a `run-hook.cmd <name>` / `run-hook <name>` wrapper; with any
+ * `.sh` extension dropped. Null for a command that runs no project hook.
+ *
+ * @param {{command?: string}} hook - One entry of a matcher's `hooks` array.
+ * @returns {?string}
+ */
+export function hookScript(hook) {
+  const cmd = String(hook?.command ?? '');
+  const wrapped = cmd.match(/\.claude\/hooks\/run-hook(?:\.cmd|\.sh)?["']?\s+["']?([\w.-]+)/);
+  if (wrapped) return wrapped[1].replace(/\.sh$/, '');
+  const direct = cmd.match(/\.claude\/hooks\/([\w.-]+)/);
+  return direct ? direct[1].replace(/\.sh$/, '') : null;
+}
+
+/**
+ * Adds a pack's hook entries to `settings.hooks` in place. A hook is skipped
+ * when the same event already runs it — the same JSON, or the same project
+ * hook script by `hookScript`, under any matcher and whatever the command
+ * spelling — so the repo's own wiring is kept and nothing fires twice. New
+ * hooks join an existing entry with the same matcher, else a new entry.
+ *
+ * @param {object} settings - The settings being merged into; mutated.
+ * @param {Record<string, object[]>} fragHooks - The pack's `hooks` fragment.
+ */
+export function addHooks(settings, fragHooks) {
+  for (const [event, entries] of Object.entries(fragHooks ?? {})) {
+    settings.hooks ??= {};
+    const cur = (settings.hooks[event] ??= []);
     for (const e of entries) {
-      const key = e.matcher ?? '';
-      if (!byMatcher.has(key)) byMatcher.set(key, { ...e, hooks: [] });
-      const tgt = byMatcher.get(key);
-      for (const h of e.hooks ?? []) if (!tgt.hooks.some((x) => JSON.stringify(x) === JSON.stringify(h))) tgt.hooks.push(h);
+      for (const h of e.hooks ?? []) {
+        const id = hookScript(h);
+        const present = cur.some((t) => (t.hooks ?? []).some((x) => same(x, h) || (id && hookScript(x) === id)));
+        if (present) continue;
+        const tgt = cur.find((t) => (t.matcher ?? '') === (e.matcher ?? ''));
+        if (tgt) (tgt.hooks ??= []).push(h);
+        else cur.push({ ...e, hooks: [h] });
+      }
     }
-    settings.hooks[event] = [...byMatcher.values()];
+    if (!cur.length) delete settings.hooks[event];
   }
-  return settings;
+  if (settings.hooks && !Object.keys(settings.hooks).length) delete settings.hooks;
 }
 
 // enabledPlugins + extraKnownMarketplaces so teammates opening the repo are
@@ -82,7 +113,10 @@ function pluginSettings(all, order, ctx) {
 
 /**
  * Merges every pack's settings fragment and the required plugins into
- * `<dest>/.claude/settings.json`.
+ * `<dest>/.claude/settings.json`. Hooks go through `addHooks` (a hook script
+ * the repo already wires is not added again); everything else through
+ * `deepMerge`. Keys the packs don't mention, comment keys like `"//"`
+ * included, are kept with their text.
  *
  * @returns {{status: 'merged'|'unchanged'} | {error: string}}
  */
@@ -92,16 +126,30 @@ export function mergeSettingsFile(all, order, ctx, dry) {
   if (current === null) return { error: '.claude/settings.json exists but is not valid JSON — settings not merged' };
   const merged = structuredClone(current);
   for (const name of order) {
-    deepMerge(merged, JSON.parse(renderTokens(JSON.stringify(filterSettings(all[name].settings ?? {}, ctx)), ctx.tokens)));
+    const { hooks, ...rest } = JSON.parse(renderTokens(JSON.stringify(filterSettings(all[name].settings ?? {}, ctx)), ctx.tokens));
+    addHooks(merged, hooks);
+    deepMerge(merged, rest);
   }
   deepMerge(merged, pluginSettings(all, order, ctx));
-  mergeHookEntries(merged);
   const changed = JSON.stringify(merged) !== JSON.stringify(current);
-  if (changed && !dry) {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, JSON.stringify(merged, null, 2) + '\n');
-  }
+  if (changed && !dry) writeJson(file, merged);
   return { status: changed ? 'merged' : 'unchanged' };
+}
+
+/**
+ * Writes `value` to the JSON file `file`. An existing file is edited in
+ * place (`editJson`): what the change doesn't touch keeps its text and the
+ * file keeps its indentation; a new file gets two-space JSON.
+ */
+function writeJson(file, value) {
+  if (exists(file)) {
+    const text = fs.readFileSync(file, 'utf8');
+    const next = editJson(text, value);
+    if (next !== text) fs.writeFileSync(file, next);
+    return;
+  }
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(value, null, 2) + '\n');
 }
 
 // MCP servers the packs declare, filtered by @when and rendered. Secrets must
@@ -135,7 +183,7 @@ export function mergeMcpFile(all, order, ctx, dry) {
   const kept = Object.keys(servers).filter((k) => k in next.mcpServers);
   for (const [k, v] of Object.entries(servers)) if (!(k in next.mcpServers)) next.mcpServers[k] = v;
   const changed = JSON.stringify(next) !== JSON.stringify(cur);
-  if (changed && !dry) fs.writeFileSync(file, JSON.stringify(next, null, 2) + '\n');
+  if (changed && !dry) writeJson(file, next);
   return { servers: Object.keys(servers), keptExisting: kept, file: '.mcp.json', changed };
 }
 
@@ -193,7 +241,7 @@ export function unmergeSettingsFile(all, packs, ctx, dry) {
     removeFragment(next, rest);
   }
   const changed = !same(next, current);
-  if (changed && !dry) fs.writeFileSync(file, JSON.stringify(next, null, 2) + '\n');
+  if (changed && !dry) writeJson(file, next);
   return { status: changed ? 'removed' : 'unchanged' };
 }
 
@@ -224,7 +272,7 @@ export function unmergeMcpFile(all, packs, ctx, dry) {
   res.deletedFile = Object.keys(next).length === 1 && !Object.keys(next.mcpServers).length;
   if (!dry) {
     if (res.deletedFile) fs.rmSync(file);
-    else fs.writeFileSync(file, JSON.stringify(next, null, 2) + '\n');
+    else writeJson(file, next);
   }
   return res;
 }

@@ -96,7 +96,7 @@ often captures nothing — use `vitals` for load-time questions.
    vendor docs redirect between product generations, so confirm the product and
    tier on the page you landed on.
 
-Repo docs (`docs/conventions`, `{{AI_DIR}}/*`, README prose) are hypotheses, not
+Repo docs (`{{CONVENTIONS_DIR}}`, `{{AI_DIR}}/*`, README prose) are hypotheses, not
 evidence; they go stale exactly where the interesting findings are.
 
 ## Shell traps that cost a round trip

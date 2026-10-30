@@ -2,8 +2,14 @@
 
 > **Adapt me.** Standing rulings for agents working
 > in {{PROJECT_NAME}}. Edit freely: delete rules your team doesn't hold, add
+<!-- @if option:rulesImport=agents-md -->
+> the ones you keep repeating. This file is imported from `AGENTS.md`, so every
+> session reads it.
+<!-- @endif -->
+<!-- @if !option:rulesImport=agents-md -->
 > the ones you keep repeating. This file is imported from `CLAUDE.md`, so every
 > session reads it.
+<!-- @endif -->
 
 Standing rulings the repository owner has given agents working in this
 checkout. `git log` on this file is the only date a ruling carries, so read it
@@ -51,6 +57,13 @@ not obvious, and how to apply it.
   where the run is, what is running and where its output lands, next steps in
   order, decisions made, accumulated user instructions, scratchpad paths.
 <!-- @endif -->
+<!-- @if pack:dev-workflow|pack:review-agents -->
+- **Repo-specific additions to a workflow skill or agent go in
+  `{{AI_DIR}}/skill-extensions/<skill-or-agent-name>.md`**, never into the
+  skill or agent file: they read that file at named points (`rules`, `scope`,
+  `before-dispatch`, `verify`, `finish`), and a template update replaces the
+  skill but never touches the extensions folder.
+<!-- @endif -->
 - **Transient scratch** (lane reports, TSVs, command output, commit-message
   files) goes under `.cache/claude-scratch/<lane>/` (git-ignored), not the
   system temp directory, which may not survive the session.
@@ -73,7 +86,7 @@ not obvious, and how to apply it.
 ## 4. Comments and docblocks
 
 <!-- @if pack:review-agents -->
-`docs/conventions/comment-policy.md` is the policy; these corrections are
+`{{COMMENT_POLICY_PATH}}` is the policy; these corrections are
 enforced on top of it:
 <!-- @endif -->
 

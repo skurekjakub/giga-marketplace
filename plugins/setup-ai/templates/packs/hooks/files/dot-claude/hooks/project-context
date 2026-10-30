@@ -2,8 +2,9 @@
 # SessionStart hook — re-injects the project's identity docs after startup and
 # compaction, so a long session doesn't drift once the originals have scrolled
 # out of context:
-#   - AGENTS.md (only when CLAUDE.md doesn't already import it — Claude Code
-#     loads CLAUDE.md and its @imports by itself)
+#   - AGENTS.md, only when a CLAUDE.md exists and doesn't import it. Claude
+#     Code loads CLAUDE.md and its @imports by itself, and reads AGENTS.md
+#     itself in a repo without a CLAUDE.md, so either way it is already there.
 #   - the project memory index (MEMORY.md) from Claude Code's per-project dir
 #   - the current branch
 #
@@ -19,7 +20,8 @@ mangled=$(printf '%s' "$PROJECT_DIR" | sed 's/[^A-Za-z0-9]/-/g')
 MEMORY_DIR="${HOME}/.claude/projects/${mangled}/memory"
 
 agents_md=""
-if [ -f "${PROJECT_DIR}/AGENTS.md" ] && ! grep -qs '^@AGENTS\.md' "${PROJECT_DIR}/CLAUDE.md"; then
+if [ -f "${PROJECT_DIR}/AGENTS.md" ] && [ -f "${PROJECT_DIR}/CLAUDE.md" ] \
+    && ! grep -qs '^@AGENTS\.md' "${PROJECT_DIR}/CLAUDE.md"; then
     agents_md=$(cat "${PROJECT_DIR}/AGENTS.md")
 fi
 

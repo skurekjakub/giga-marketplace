@@ -22,11 +22,16 @@ function pruneDirs(dest, file) {
 }
 
 // Recorded files of the removed packs: deleted when still as rendered (or
-// named in `--delete-edited`), kept when someone edited them.
+// named in `--delete-edited`), kept when someone edited them. An adopted
+// file is the repo's own and is always kept.
 function removeFiles(dest, record, removing, deleteEdited, dry) {
-  const res = { deleted: [], keptEdited: [], alreadyGone: [] };
-  for (const [rel, { pack, hash }] of Object.entries(record.files ?? {})) {
+  const res = { deleted: [], keptEdited: [], keptAdopted: [], alreadyGone: [] };
+  for (const [rel, { pack, hash, adopted }] of Object.entries(record.files ?? {})) {
     if (!removing.includes(pack)) continue;
+    if (adopted) {
+      res.keptAdopted.push(adopted);
+      continue;
+    }
     const target = path.join(dest, rel);
     if (!exists(target)) {
       res.alreadyGone.push(rel);
@@ -151,7 +156,7 @@ export function cmdRemove(args) {
   if (remaining.length) {
     // Checked before anything is deleted, so a failing re-render can't leave
     // the repo half-removed.
-    const { missingTokens, invalidOptions } = planFor(recordArgs(dest, next, remaining, { exclude: removing }));
+    const { missingTokens, invalidOptions } = planFor(recordArgs(dest, next, remaining, { exclude: removing, defaults: true }));
     if (missingTokens.length || invalidOptions.length) die('the remaining packs cannot be re-rendered from the record', { missingTokens, invalidOptions });
   }
   const ctxBefore = ctxFor(recordArgs(dest, record, recorded), recorded);
@@ -186,7 +191,9 @@ export function cmdRemove(args) {
   } else {
     if (!dry) fs.writeFileSync(path.join(dest, RECORD), JSON.stringify(next, null, 2) + '\n');
     report.record = 'updated';
-    const r = renderPacks(recordArgs(dest, next, remaining, { update: true, 'dry-run': dry, exclude: removing }));
+    // --defaults: a record written before an option existed must not block
+    // the re-render; the option takes the default a fresh install would.
+    const r = renderPacks(recordArgs(dest, next, remaining, { update: true, defaults: true, 'dry-run': dry, exclude: removing }));
     report.rerender = { written: r.written, conflicts: r.conflicts, errors: r.errors };
     report.errors.push(...r.errors);
   }

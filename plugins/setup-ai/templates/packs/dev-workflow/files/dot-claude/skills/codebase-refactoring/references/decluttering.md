@@ -1,6 +1,6 @@
 # Decluttering — ordering and graph checks
 
-**If the repo has a dead-code convention doc under `docs/conventions/`, read
+**If the repo has a dead-code convention doc under `{{CONVENTIONS_DIR}}/`, read
 it first** — its config shape, confirmed false positives and `--fix` rules
 outrank this file. This file covers the order to work in, the dependency-graph
 checks, and the judgement calls around "dead". Examples use knip and

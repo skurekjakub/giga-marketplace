@@ -44,7 +44,7 @@ answer would be expensive to discover later.
 
 ## Every dispatch prompt
 
-- Names `docs/conventions/comment-policy.md` and requires reading it first.
+- Names `{{COMMENT_POLICY_PATH}}` and requires reading it first.
 - Names the files in scope and the files explicitly out of scope.
 - Names where the output goes (a report path, or "reply only").
 - States the verification command to run and that its output is part of the

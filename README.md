@@ -38,11 +38,19 @@ merges `.claude/settings.json` and `.mcp.json`, and records the install in
 `remove` deletes only files nobody edited and takes its hooks, appended lines and MCP
 servers back out.
 
+In a repo that already has its own agents, hooks or convention docs, the wizard shows a diff
+per file (and the lines a template would drop) and lets you **adopt** yours as the baseline,
+overwrite, or overwrite and carry your additions over. Repo-specific additions to the workflow
+skills and agents live in `<AI_DIR>/skill-extensions/<name>.md`, which the skills read and
+setup-ai never touches — so later updates don't conflict with them. See
+[`plugins/setup-ai/CHANGELOG.md`](plugins/setup-ai/CHANGELOG.md) for what changed between
+versions.
+
 | Pack | Installs |
 |---|---|
-| `baseline` | Agent working rules imported from `CLAUDE.md`, PR guidelines |
-| `hooks` | Guard-rail bash hooks: block destructive commands, prefer the verify command, format on edit, re-inject context after compaction, periodic rule reminders, done notifications, ADO PR limits |
-| `review-agents` | `rubber-duk-*` subagents (review, security audit, backend, frontend, unit tests, e2e) with a per-repo stack profile (Next.js or generic) and starter convention docs |
+| `baseline` | Agent working rules imported from `CLAUDE.md` (or `AGENTS.md`), PR guidelines |
+| `hooks` | Guard-rail bash hooks: block destructive commands, prefer the verify command, require commit and PR bodies, format on edit, re-inject context after compaction, periodic rule reminders, done notifications, ADO PR limits, rtk-compacted source reads |
+| `review-agents` | `rubber-duk-*` subagents (review, security audit, backend, frontend, unit tests, e2e, prose review for posts and docs) with a per-repo stack profile (Next.js or generic) and starter convention docs |
 | `dev-workflow` | Feature, bugfix, refactor and read-only analysis workflows with journals, review gates and published explainers |
 | `issue-tracking` | Jira ticket filing and ticket QA, with the [jira-mcp](https://github.com/skurekjakub/jira-mcp) server wired into `.mcp.json`; GitHub issue filing with the `gh` CLI |
 | `tech-writing` | Release notes, hotfix notes, docs-vs-source validation, draw.io diagrams, a Gemini (agy) style review |

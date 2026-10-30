@@ -70,13 +70,21 @@ When they disagree, the engine wins — fix this file.
 ## Tokens and detection
 
 - A token used by more than one pack goes in `templates/placeholders.json` (`prompt`, `default`, `infer`). Pack-only tokens go in that pack's `tokens`.
-- A new `detect:<flag>` or inferred token value means editing `detect()` in `lib/detect.mjs` — it must stay cheap and read-only (package.json, lockfiles, git remote, a few `exists` checks).
+- `"autoDefault": true` (global tokens only) applies `default` when the values file omits the token, rendered against the other tokens. Use it when making an existing hard-coded path a token: the default is the old path, so repos installed before render unchanged. Convention-doc paths are tokens (`CONVENTIONS_DIR`, `COMMENT_POLICY_PATH`, `PR_GUIDE_PATH`, `GOTCHAS_PATH`, `STYLE_GUIDE_DIR`) — never hard-code `docs/conventions/…` in a template; a file the pack ships at such a path lives at `files/{{COMMENT_POLICY_PATH}}` etc.
+- A new `detect:<flag>` or inferred token value means editing `detect()` in `lib/detect.mjs` (file-listing inferences in `lib/repo-scan.mjs`) — it must stay cheap and read-only (package.json, lockfiles, git remote, one `git ls-files`, a few `exists` checks).
+- A new known-equivalent name for adopt (a file repos commonly keep under another name) goes in `equivalentsOf()` in `lib/repo-scan.mjs`.
+
+## Skill extensions
+
+- `<AI_DIR>/skill-extensions/` belongs to the repo owner: no pack may ship a file there (`buildFiles` throws), and render never records or deletes one.
+- A workflow skill or agent that repo owners will want to extend reads `{{AI_DIR}}/skill-extensions/<name>.md` (a short "Project extensions" block at the top of Ground rules, or one line in an agent's required reading) and marks its points with `**Extension point \`<point>\`:**` — `rules`, `scope`, `before-dispatch`, `verify`, `finish`. Keep the marker to two lines.
 
 ## Hooks
 
 - Vendored hook = extensionless bash in `files/dot-claude/hooks/`, wired as `{ "type": "command", "shell": "bash", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/<name>\"" }` under an `@when` choice of `options.hooks`, plus its `fileConditions` entry.
 - Plugin-level hooks (setup-ai's own) use exec form: `"command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/…"]` — no shell needed.
 - Read payloads with `jq`; a guard must not fail open without it (see `block-destructive-bash`'s raw-payload fallback). Deny = exit 2 with the reason on stderr.
+- A Bash guard enforcing *this project's* conventions carries `exit_if_outside_project` (copy it from `require-commit-format`) so a command that runs in another repo (`cd <dir> &&`, `git -C <dir>`, or a payload `cwd` outside `$CLAUDE_PROJECT_DIR`) passes. A guard against damage anywhere (`rm -rf /`) runs before it. `scripts/test/hooks.test.mjs` pipes payloads through the rendered hooks — add cases there.
 
 ## Verify
 

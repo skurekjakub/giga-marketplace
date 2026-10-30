@@ -63,7 +63,7 @@ resolves without one, and a constitution that moves domain breaks no link. A
 relative path encodes a directory depth that a regroup invalidates silently;
 `[[slug]]` encodes only identity.
 
-Paths remain correct for locators outside the corpus — `docs/conventions/*`,
+Paths remain correct for locators outside the corpus — `{{CONVENTIONS_DIR}}/*`,
 a source module, a test file.
 
 ## Implementation artifacts — what they may contain

@@ -11,5 +11,10 @@
   "TEST_CMD": { "prompt": "Unit/integration test command", "infer": "the test script" },
   "E2E_CMD": { "prompt": "End-to-end test command", "infer": "a test:e2e / e2e script" },
   "UNIT_TEST_GLOB": { "prompt": "Where unit/integration tests live (glob)", "infer": "__tests__/**, test/**, else **/*.test.*" },
-  "E2E_GLOB": { "prompt": "Where end-to-end specs live (glob)", "infer": "e2e/**" }
+  "E2E_GLOB": { "prompt": "Where end-to-end specs live (glob)", "infer": "e2e/**" },
+  "CONVENTIONS_DIR": { "prompt": "Repo-relative folder holding the convention docs agents read (stack profile, test quality, …)", "default": "docs/conventions", "autoDefault": true, "infer": "an existing conventions/ folder holding .md files" },
+  "COMMENT_POLICY_PATH": { "prompt": "Repo-relative path of the comment policy", "default": "{{CONVENTIONS_DIR}}/comment-policy.md", "autoDefault": true, "infer": "an existing comment-policy.md anywhere in the repo" },
+  "PR_GUIDE_PATH": { "prompt": "Repo-relative path of the commit and pull-request guidelines", "default": "{{AI_DIR}}/resources/pr-guidelines.md", "autoDefault": true, "infer": "an existing commit-and-pr-format.md or pr-guidelines.md" },
+  "GOTCHAS_PATH": { "prompt": "Repo-relative path of the hard-won-lessons file", "default": "docs/gotchas.md", "autoDefault": true, "infer": "an existing gotchas.md" },
+  "STYLE_GUIDE_DIR": { "prompt": "Repo-relative folder holding the prose style guides", "default": "{{AI_DIR}}/resources/styleguides", "infer": "the folder of an existing *style-guide*.md" }
 }
