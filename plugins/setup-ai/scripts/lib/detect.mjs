@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { RECORD, exists, readJson } from './util.mjs';
 import { run } from './proc.mjs';
+import { existingWorkspace, hasContent, inferPathTokens, placeholderSuggestions, repoFiles, vendoredDuplicates } from './repo-scan.mjs';
 
 const PM_RUNNERS = {
   yarn: (s) => `yarn ${s}`,
@@ -19,8 +20,11 @@ function packageManager(dest, pkg) {
 
 /**
  * Repo facts the wizard derives its defaults from: package manager, scripts,
- * framework flags, inferred token values and a stack-profile guess. Reads
- * files and runs git; writes nothing.
+ * framework flags, inferred token values (paths included, from where the repo
+ * keeps its convention docs), a stack-profile guess, the agent-workspace files
+ * the repo already has, skills vendored from setup-ai's own marketplace, and
+ * candidates for skeleton placeholders. Reads files and runs git; writes
+ * nothing.
  */
 export function detect(dest) {
   const pkg = readJson(path.join(dest, 'package.json'), null);
@@ -94,6 +98,19 @@ export function detect(dest) {
   ].filter(Boolean);
   if (stack.length) tokens.STACK_SUMMARY = stack.join(' / ');
 
+  const files = repoFiles(dest);
+  const existing = existingWorkspace(files);
+  Object.assign(tokens, inferPathTokens(existing));
+  flags.content = hasContent(files);
+  flags.existingWorkspace = Boolean(existing.agents.length || existing.hooks.length || existing.skills.length
+    || existing.commentPolicy.length || existing.workingRules.length);
+  // Skills the record lists are setup-ai's own renders and vendor installs, not copies.
+  const record = readJson(path.join(dest, RECORD), null);
+  const ownSkills = new Set([
+    ...Object.keys(record?.files ?? {}).filter((f) => f.startsWith('.claude/skills/')).map((f) => f.split('/')[2]),
+    ...(record?.vendorSkills ?? []).map((v) => v.skill),
+  ]);
+
   return {
     dest: path.resolve(dest),
     packageManager: pm,
@@ -103,6 +120,9 @@ export function detect(dest) {
     options: { profile: flags.next ? 'nextjs' : 'generic' },
     proposals: { verifyScript: verifyScriptProposal },
     suggestedPacks: ['baseline', 'hooks', 'review-agents', 'dev-workflow'],
+    existing,
+    vendoredDuplicates: vendoredDuplicates(existing.skills.filter((s) => !ownSkills.has(s))),
+    placeholderSuggestions: placeholderSuggestions(files),
     remote: remote || null,
   };
 }

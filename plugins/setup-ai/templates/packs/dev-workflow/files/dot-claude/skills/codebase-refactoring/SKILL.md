@@ -17,6 +17,15 @@ sweep — are where refactors are won or lost.
 
 ## Ground rules
 
+### Project extensions
+
+If `{{AI_DIR}}/skill-extensions/codebase-refactoring.md` exists, read it before
+anything else: it holds this repo's additions to this skill, kept outside it
+so template updates never overwrite them. Its `## rules` section binds every
+phase; `## scope`, `## before-dispatch`, `## verify` and `## finish` apply
+where this file says **Extension point**. Where it contradicts this file, the
+extension wins. Repo-specific rules go there, never into this file.
+
 ### Code outranks documentation
 
 **Verify every claim against the code, including this repo's own
@@ -33,7 +42,7 @@ When doc and code disagree, code wins — the doc is stale.
 ### The docs are part of the diff
 
 A refactor that moves or renames code and leaves the prose behind ships a
-codebase that lies about itself. Convention docs (`docs/conventions/`), DoD
+codebase that lies about itself. Convention docs (`{{CONVENTIONS_DIR}}/`), DoD
 checklists (`{{AI_DIR}}/dod/`), diagrams (`{{AI_DIR}}/diagrams/`), and `CLAUDE.md` / `AGENTS.md` are
 rules agents follow, so a stale locator there causes wrong work later, not
 just confusion.
@@ -47,6 +56,9 @@ A doc wrong before the refactor started still gets fixed, noted in the
 commit message — inherited staleness is still staleness once seen.
 
 ### Scope discipline
+
+**Extension point `scope`:** the extension file's `## scope` section adds the
+paths and areas this work never touches.
 
 Refactors die of scope: the instinct that makes someone good at this work —
 "and while I'm here" — turns a reviewable diff into an unreviewable one and
@@ -81,6 +93,9 @@ never hides as inline prose in `spec.md`, `plan.md`, `README.md`, or
 documentation.
 
 ### Seats: who does what, on which model
+
+**Extension point `before-dispatch`:** every subagent brief also carries the
+extension file's `## before-dispatch` section (a model rule, a required read).
 
 Every review and implementation seat is a `rubber-duk-*` agent, never
 `general-purpose`, with `model` passed explicitly on every dispatch. Read
@@ -310,6 +325,9 @@ See `references/completeness-sweep.md` for query patterns.
 
 ### Phase 6 — Review
 
+**Extension point `verify`:** run the extension file's `## verify` gates
+alongside `{{VERIFY_CMD}}`.
+
 1. `superpowers:requesting-code-review` against the branch base.
 2. `rubber-duk-review` over the full branch diff — mandatory, every refactor.
    In parallel, dispatch domain passes per `{{AI_DIR}}/resources/skills/seats.md`:
@@ -337,6 +355,9 @@ Findings specific to this flow, which a reviewer should be asked to hunt:
 - doc locators the move broke
 
 ### Phase 7 — Finish
+
+**Extension point `finish`:** the extension file's `## finish` steps (a
+changelog entry, the commit-message format) run before the commit.
 
 The orchestrator writes `{{AI_DIR}}/refactoring/NNN-<slug>/README.md` describing
 the current shape against the code, not edited from the spec — no

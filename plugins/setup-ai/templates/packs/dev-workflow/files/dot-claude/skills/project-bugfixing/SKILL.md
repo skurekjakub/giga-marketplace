@@ -14,6 +14,15 @@ phases** define the workflow in order.
 
 ## Ground rules
 
+### Project extensions
+
+If `{{AI_DIR}}/skill-extensions/project-bugfixing.md` exists, read it before
+anything else: it holds this repo's additions to this skill, kept outside it
+so template updates never overwrite them. Its `## rules` section binds every
+phase; `## scope`, `## before-dispatch`, `## verify` and `## finish` apply
+where this file says **Extension point**. Where it contradicts this file, the
+extension wins. Repo-specific rules go there, never into this file.
+
 ### Is this a bugfix, a feature, or a refactor?
 
 A bugfix restores behaviour the code already intends. The test is whether
@@ -33,6 +42,9 @@ ships a decision nobody reviewed. If it turns into a feature mid-flight, say
 so, stop, and switch skills.
 
 ### Seats: who does what, on which model
+
+**Extension point `before-dispatch`:** every subagent brief also carries the
+extension file's `## before-dispatch` section (a model rule, a required read).
 
 This skill sets the repo specifics. `superpowers:*` skills hold the method:
 `superpowers:systematic-debugging` to find the cause,
@@ -69,19 +81,19 @@ negative-proof regression tests, and the most capable model available for
 the whole-branch review in Phase 8.
 
 Every dispatched implementation subagent's prompt names
-`docs/conventions/comment-policy.md` and requires reading it first.
+`{{COMMENT_POLICY_PATH}}` and requires reading it first.
 
-Tests live where `docs/conventions/test-layout.md` says (`{{UNIT_TEST_GLOB}}`).
+Tests live where `{{CONVENTIONS_DIR}}/test-layout.md` says (`{{UNIT_TEST_GLOB}}`).
 
 ### Read the framework docs on disk first
 
 Before any framework work, read the version-matched docs the stack profile
-(`docs/conventions/stack-profile.md`) points at. Training data is outdated;
+(`{{CONVENTIONS_DIR}}/stack-profile.md`) points at. Training data is outdated;
 the installed docs are the source of truth. This bites hardest on bugfixes,
 because the symptoms that look like application bugs — a page rendering
 empty, a stale value surviving a write, a boundary resolving in the wrong
 order — are usually framework caching or rendering semantics.
-`docs/gotchas.md` carries the ones already paid for.
+`{{GOTCHAS_PATH}}` carries the ones already paid for.
 
 Repo facts a bugfix runs into:
 
@@ -95,7 +107,7 @@ Repo facts a bugfix runs into:
   is often a build-output gap (files the runtime reads that the build didn't
   include) or a caching difference, not a logic error. Check that first.
 - **Everything in `CLAUDE.md` still applies to a two-line fix** — the
-  comment policy, the framework-docs mandate, and `docs/conventions/` for the
+  comment policy, the framework-docs mandate, and `{{CONVENTIONS_DIR}}/` for the
   surface you touch.
 
 ### How the repo is verified
@@ -134,6 +146,9 @@ their call, not yours.
 
 ### Scope discipline
 
+**Extension point `scope`:** the extension file's `## scope` section adds the
+paths and areas this work never touches.
+
 Bugfixes die of scope the same way refactors do. The test for each candidate
 change: **does closing this defect require it?** If not, surface it and let
 the user decide.
@@ -152,7 +167,7 @@ fix" section (defined below under The journal), so a reviewer can tell
 
 ### Comments the fix leaves behind
 
-The comment policy (`docs/conventions/comment-policy.md`) applies to a
+The comment policy (`{{COMMENT_POLICY_PATH}}`) applies to a
 two-line fix. Two shapes only: doc comments on functions, and a two-line-max inline comment at the gotcha —
 directly above the line where correct-looking code is wrong. That inline
 comment is often the most valuable line in a bugfix diff.
@@ -372,9 +387,9 @@ Where the test goes:
 
 | Kind | Home | Convention |
 |---|---|---|
-| Unit / integration | `{{UNIT_TEST_GLOB}}` | `docs/conventions/test-quality.md` |
+| Unit / integration | `{{UNIT_TEST_GLOB}}` | `{{CONVENTIONS_DIR}}/test-quality.md` |
 <!-- @if option:agents=rubber-duk-e2e -->
-| Browser behaviour | `{{E2E_GLOB}}` | `docs/conventions/e2e-conventions.md` |
+| Browser behaviour | `{{E2E_GLOB}}` | `{{CONVENTIONS_DIR}}/e2e-conventions.md` |
 <!-- @endif -->
 | Manual click-through | `{{AI_DIR}}/regression/<domain>.md` | `{{AI_DIR}}/regression/README.md` |
 
@@ -424,8 +439,8 @@ it, add one.
 
 ### Phase 6 — Update the docs the fix invalidated
 
-Check the diff against `docs/conventions/` (the convention covering the
-surface you touched), `docs/gotchas.md` (add one if the trap generalises),
+Check the diff against `{{CONVENTIONS_DIR}}/` (the convention covering the
+surface you touched), `{{GOTCHAS_PATH}}` (add one if the trap generalises),
 the owning `{{AI_DIR}}/feature-constitution/<domain>/<slug>/README.md`, and
 `{{AI_DIR}}/dod/` if a definition-of-done item was wrong. Most bugfixes touch none,
 and "none" is a valid finding — record "Doc updates: none" in the Phase 6
@@ -440,6 +455,9 @@ diagram's own claim. Current-state prose only: no "previously", no fix
 narrative.
 
 ### Phase 7 — Verify
+
+**Extension point `verify`:** run the extension file's `## verify` gates
+alongside `{{VERIFY_CMD}}`.
 
 `{{VERIFY_CMD}}` exits 0, as the verification rule in Ground rules sets
 out. Run it. Read the output. Not "should pass".
@@ -499,6 +517,9 @@ the PR body.
 
 ### Phase 11 — Commit and finish
 
+**Extension point `finish`:** the extension file's `## finish` steps (a
+changelog entry, the commit-message format) run before the commit.
+
 Bundle the fix, tests, artifacts, captures and doc updates into a single
 commit, branch, and PR so the change can be cleanly reverted as a single
 unit. Review-finding commits from Phase 8
@@ -506,7 +527,7 @@ sit on top of it and are exempt — they answer a reviewer, so each stays
 separately readable.
 
 Then `superpowers:finishing-a-development-branch`. PR body rules:
-`{{AI_DIR}}/resources/pr-guidelines.md`. The explainer URL belongs in the PR
+`{{PR_GUIDE_PATH}}`. The explainer URL belongs in the PR
 body; `root-cause.md` does not get pasted
 into it.
 

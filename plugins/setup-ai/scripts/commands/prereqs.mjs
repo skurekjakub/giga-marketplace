@@ -4,12 +4,15 @@ import { loadPacks, resolvePacks } from '../lib/packs.mjs';
 import { prereqStatus, resetPluginCache } from '../lib/prereqs.mjs';
 import { vendorInstall } from '../lib/vendor.mjs';
 import { ctxFor, packList } from '../lib/context.mjs';
+import { marketplaceRoot } from '../lib/marketplace.mjs';
 
 /**
  * `prereqs` — installs what can be installed for the resolved packs: missing
- * marketplaces, plugins (project scope) and vendor skills. CLIs and env vars
- * are only reported; the user installs or sets those. `--dry-run` lists the
- * commands it would run and runs none of them.
+ * marketplaces, plugins (project scope) and vendor skills. With `--update`,
+ * first refreshes the marketplaces those plugins come from (and setup-ai's
+ * own) and updates the installed ones at project scope, from the repo's
+ * directory. CLIs and env vars are only reported; the user installs or sets
+ * those. `--dry-run` lists the commands it would run and runs none of them.
  */
 export function cmdPrereqs(args) {
   const all = loadPacks();
@@ -20,10 +23,22 @@ export function cmdPrereqs(args) {
   const results = [];
   const exec = (argv) => {
     const label = `claude ${argv.join(' ')}`;
-    if (dry) return results.push({ step: label, ok: true, dryRun: true });
+    if (dry) return results.push({ step: label, cwd: ctx.dest, ok: true, dryRun: true });
     const r = run('claude', argv, { cwd: ctx.dest });
     return results.push({ step: label, ok: r.code === 0, stderr: r.code ? r.stderr.slice(-1500) : undefined });
   };
+
+  if (args.update) {
+    // Refresh first, so a missing plugin below installs from the fresh catalog.
+    // Plugin updates run with cwd = the repo: a project-scope update resolves
+    // the project from the working directory, and run elsewhere it updates a
+    // different project's install.
+    const markets = new Set(status.plugins.filter((p) => p.marketplaceKnown !== false).map((p) => p.id.split('@')[1]));
+    const own = marketplaceRoot()?.name;
+    if (own) markets.add(own);
+    for (const m of markets) exec(['plugin', 'marketplace', 'update', m]);
+    for (const p of status.plugins.filter((x) => x.status === 'installed')) exec(['plugin', 'update', p.id, '--scope', 'project']);
+  }
 
   const addedMarkets = new Set();
   for (const p of status.plugins.filter((x) => x.status !== 'installed')) {

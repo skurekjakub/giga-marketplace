@@ -50,7 +50,7 @@ principle below.
 
 ## P6 — Hygiene
 
-- Arrange / Act / Assert, labelled (see `comment-policy.md` § Tests).
+- Arrange / Act / Assert, labelled (see `{{COMMENT_POLICY_PATH}}` § Tests).
 - One behaviour per test; the name describes that behaviour.
 - No leftover `.only` / `.skip`.
 

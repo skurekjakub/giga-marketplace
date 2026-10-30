@@ -1,17 +1,44 @@
 {
   "name": "baseline",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "title": "Agent working rules",
-  "summary": "A standing-rules file for agents (reply style, handoffs, design rulings, comments, tests, finishing work) imported from CLAUDE.md, plus PR guidelines — with sections that switch on for the other packs you install.",
+  "summary": "A standing-rules file for agents (reply style, handoffs, design rulings, comments, tests, finishing work) imported from CLAUDE.md or AGENTS.md, plus PR guidelines — with sections that switch on for the other packs you install.",
+  "options": {
+    "rulesImport": {
+      "type": "single",
+      "prompt": "Which file should import the agent working rules?",
+      "choices": [
+        {
+          "value": "agents-md",
+          "label": "AGENTS.md",
+          "description": "Append the @-import to AGENTS.md and create no CLAUDE.md. Claude Code reads AGENTS.md itself, so a CLAUDE.md that only re-imports it is a second entry point to keep in step.",
+          "defaultWhen": "detect:agentsMd+!detect:claudeMd"
+        },
+        {
+          "value": "claude-md",
+          "label": "CLAUDE.md",
+          "description": "Append the @-import to CLAUDE.md (created when missing; it also imports AGENTS.md when the repo has one).",
+          "default": true
+        }
+      ]
+    }
+  },
   "appends": [
     {
       "to": "CLAUDE.md",
-      "when": "detect:agentsMd",
+      "when": "detect:agentsMd+option:rulesImport=claude-md",
       "text": "@AGENTS.md",
       "create": "# {{PROJECT_NAME}}\n\n"
     },
     {
       "to": "CLAUDE.md",
+      "when": "option:rulesImport=claude-md",
+      "text": "@{{AI_DIR}}/agent-working-rules.md",
+      "create": "# {{PROJECT_NAME}}\n\n"
+    },
+    {
+      "to": "AGENTS.md",
+      "when": "option:rulesImport=agents-md",
       "text": "@{{AI_DIR}}/agent-working-rules.md",
       "create": "# {{PROJECT_NAME}}\n\n"
     },

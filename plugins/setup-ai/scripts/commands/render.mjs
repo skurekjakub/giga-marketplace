@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { RECORD, die, exists, lf, out, pluginVersion, readJson } from '../lib/util.mjs';
+import { RECORD, die, exists, lf, out, readJson } from '../lib/util.mjs';
 import { evalCond } from '../lib/conditions.mjs';
-import { leftoverTokens, renderTokens, todoPlaceholders } from '../lib/template.mjs';
-import { buildFiles, packTodos } from '../lib/packs.mjs';
+import { leftoverTokens, renderTokens } from '../lib/template.mjs';
+import { provenance } from '../lib/marketplace.mjs';
+import { attachEquivalents } from '../lib/repo-scan.mjs';
+import { buildFiles, fileTodos, packTodos } from '../lib/packs.mjs';
 import { mergeMcpFile, mergeSettingsFile } from '../lib/settings.mjs';
 import { mergePackageScripts } from '../lib/package-scripts.mjs';
 import { requiredPlugins, requiredVendorSkills } from '../lib/prereqs.mjs';
@@ -37,10 +39,10 @@ function applyAppends(all, order, ctx, dry) {
 }
 
 // The install record: what was installed, with which values, and a hash per
-// file so `--update` can tell rendered files from user-edited ones.
-function writeRecord(all, order, ctx, files, conflicts, prev, addedScripts, appended) {
-  const fileHashes = { ...(prev?.files ?? {}) };
-  for (const f of files) if (!conflicts.includes(f.dest)) fileHashes[f.dest] = { pack: f.pack, hash: contentHash(f.buf) };
+// file so `--update` can tell rendered files from user-edited ones. `fileEntries`
+// holds this run's entries; a file it leaves out keeps its previous entry.
+function writeRecord(all, order, ctx, fileEntries, prev, addedScripts, appended) {
+  const fileHashes = { ...(prev?.files ?? {}), ...fileEntries };
   const packNames = [...new Set([...(prev?.packs ?? []).map((p) => p.name), ...order])];
   // A render of some packs must not forget what earlier renders required.
   const plugins = [...new Set([...(prev?.plugins ?? []), ...requiredPlugins(all, order, ctx).map((p) => p.id)])];
@@ -48,13 +50,16 @@ function writeRecord(all, order, ctx, files, conflicts, prev, addedScripts, appe
   for (const { source, skill } of requiredVendorSkills(all, order, ctx)) {
     if (!vendorSkills.some((v) => v.skill === skill)) vendorSkills.push({ source, skill });
   }
+  const { version, ...source } = provenance();
   const rec = {
-    setupAiVersion: pluginVersion(),
+    setupAiVersion: version,
+    setupAiSource: source,
     installedAt: prev?.installedAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     packs: packNames.map((n) => ({ name: n, version: all[n]?.version ?? null })),
     options: { ...(prev?.options ?? {}), ...ctx.options },
     tokens: { ...(prev?.tokens ?? {}), ...ctx.tokens },
+    placeholders: { ...(prev?.placeholders ?? {}), ...ctx.placeholders },
     plugins,
     vendorSkills,
     // Only what this engine appended, so remove never strips a line the user had.
@@ -63,6 +68,7 @@ function writeRecord(all, order, ctx, files, conflicts, prev, addedScripts, appe
     files: fileHashes,
   };
   if (!Object.keys(rec.packageScripts).length) delete rec.packageScripts;
+  if (!Object.keys(rec.placeholders).length) delete rec.placeholders;
   fs.mkdirSync(path.join(ctx.dest, '.claude'), { recursive: true });
   fs.writeFileSync(path.join(ctx.dest, RECORD), JSON.stringify(rec, null, 2) + '\n');
 }
@@ -70,22 +76,43 @@ function writeRecord(all, order, ctx, files, conflicts, prev, addedScripts, appe
 /**
  * Writes the selected template files, applies appends, adds `packageScripts`
  * to package.json, merges `.claude/settings.json` and `.mcp.json`, and
- * writes the install record. `--dry-run` computes the same report and writes
- * nothing. Returns the report; exits on invalid options or missing tokens.
+ * writes the install record. `--adopt` records the repo's own files (or
+ * their equivalents under another path) as the baseline instead of writing
+ * the template over them. `--dry-run` computes the same report and writes
+ * nothing. Returns the report; exits on invalid options, on options the
+ * values leave unset (unless `--defaults`), or on missing tokens.
  */
 export function renderPacks(args) {
-  const { all, order, ctx, missingTokens, invalidOptions } = planFor(args);
+  const { all, order, ctx, missingTokens, missingOptions, invalidOptions } = planFor(args);
   if (invalidOptions.length) die('invalid option values', { invalidOptions });
-  if (missingTokens.length) die('missing token values — collect them first', { missingTokens });
+  if (missingTokens.length || missingOptions.length) {
+    die('missing values — collect them first (an option left unset would silently mean "none"; pass --defaults to take the defaults)', { missingTokens, missingOptions });
+  }
   const dry = Boolean(args['dry-run']);
   const record = readJson(path.join(ctx.dest, RECORD), null);
-  const files = buildFiles(all, order, ctx);
-  const report = { written: [], unchanged: [], conflicts: [], appended: [], settings: null, errors: [], todos: [] };
+  const files = attachEquivalents(ctx.dest, buildFiles(all, order, ctx));
+  const report = { written: [], unchanged: [], conflicts: [], adopted: [], appended: [], settings: null, errors: [], todos: [] };
+  const fileEntries = {};
+  const kept = new Set();
 
   for (const f of files) {
     const action = fileAction(ctx.dest, f, record, args);
+    const hash = contentHash(f.buf);
+    if (action === 'conflict' || action === 'adopted') {
+      kept.add(f.dest);
+      if (action === 'conflict') report.conflicts.push(f.dest);
+      else report.adopted.push({ dest: f.dest, file: record.files[f.dest].adopted });
+      continue;
+    }
+    if (action === 'adopt') {
+      const file = exists(path.join(ctx.dest, f.dest)) ? f.dest : f.equivalent;
+      kept.add(f.dest);
+      fileEntries[f.dest] = { pack: f.pack, hash, adopted: file };
+      report.adopted.push({ dest: f.dest, file });
+      continue;
+    }
+    fileEntries[f.dest] = { pack: f.pack, hash };
     if (action === 'unchanged') report.unchanged.push(f.dest);
-    else if (action === 'conflict') report.conflicts.push(f.dest);
     else {
       if (!dry) {
         const target = path.join(ctx.dest, f.dest);
@@ -112,13 +139,12 @@ export function renderPacks(args) {
   else if (mcp) report.mcp = mcp;
 
   for (const f of files) {
-    if (!f.text || report.conflicts.includes(f.dest)) continue;
+    if (!f.text || kept.has(f.dest)) continue;
     for (const t of leftoverTokens(f.text)) report.errors.push(`${f.dest}: unfilled {{${t}}}`);
-    const todos = todoPlaceholders(f.text);
-    if (todos.length) report.todos.push({ file: f.dest, placeholders: todos });
   }
+  report.todos = fileTodos(files.filter((f) => !kept.has(f.dest)), ctx);
 
-  if (!dry) writeRecord(all, order, ctx, files, report.conflicts, record, report.packageScripts?.added ?? [], appended);
+  if (!dry) writeRecord(all, order, ctx, fileEntries, record, report.packageScripts?.added ?? [], appended);
   return { ok: report.errors.length === 0, dryRun: dry, packs: order, ...report, manualSteps: packTodos(all, order, ctx) };
 }
 

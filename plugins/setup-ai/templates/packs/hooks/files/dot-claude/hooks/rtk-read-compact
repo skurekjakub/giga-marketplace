@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# PostToolUse hook matching Read. Routes large full-file source reads through
+# `rtk read` (https://github.com/rtk-ai/rtk) and returns the compacted result
+# via `updatedToolOutput`, so the model sees signatures instead of full
+# bodies. Claude Code's built-in Read tool never runs as a Bash command, so
+# rtk's own PreToolUse/Bash hook cannot reach it.
+#
+# rtk's hook owns PreToolUse/Bash (input rewrite); this one owns
+# PostToolUse/Read (output rewrite) — a different (event, matcher) pair, so
+# the two never compete for the same result.
+#
+# Compaction is applied ONLY when all hold (otherwise the original output is
+# kept untouched — exit 0, no JSON):
+#   - the tool is Read (rtk read needs a file path, so Grep/Glob output can't
+#     be compacted)
+#   - the read is a FULL read — no offset/limit (a targeted read means the
+#     model wants exact lines)
+#   - the file is JS/TS source (signature-stripping mangles prose and JSON)
+#   - the file is at least RTK_READ_HOOK_MIN_BYTES
+#   - rtk actually shrinks it
+#
+# Trade-off: `aggressive` strips function bodies. A model that needs a body
+# issues a targeted re-read (offset/limit), which passes through — a round
+# trip that pays off for orientation reads of large files and costs when
+# every large read is edit preparation. Tune with the knobs below.
+#
+# Env knobs:
+#   RTK_READ_HOOK_DISABLE=1   always pass through
+#   RTK_READ_HOOK_LEVEL       rtk filter level: aggressive (default) | minimal
+#   RTK_READ_HOOK_MIN_BYTES   file-size floor in bytes (default 6000)
+#   RTK_READ_HOOK_DEBUG=path  append the raw stdin payload to this file
+#
+# Without rtk or jq on PATH it passes everything through.
+
+set -euo pipefail
+
+input=$(cat)
+
+if [ -n "${RTK_READ_HOOK_DEBUG:-}" ]; then
+    printf '%s\n---\n' "$input" >> "$RTK_READ_HOOK_DEBUG" 2>/dev/null || true
+fi
+
+[ "${RTK_READ_HOOK_DISABLE:-0}" = "1" ] && exit 0
+command -v rtk >/dev/null 2>&1 || exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+
+level="${RTK_READ_HOOK_LEVEL:-aggressive}"
+min_bytes="${RTK_READ_HOOK_MIN_BYTES:-6000}"
+
+tool_name=$(printf '%s' "$input" | jq -r '.tool_name // ""')
+[ "$tool_name" = "Read" ] || exit 0
+
+file_path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // ""')
+[ -n "$file_path" ] && [ -f "$file_path" ] || exit 0
+
+# A targeted read — the model asked for specific lines. Never strip those.
+has_range=$(printf '%s' "$input" | jq -r '((.tool_input.offset // .tool_input.limit) != null)')
+[ "$has_range" = "true" ] && exit 0
+
+case "$file_path" in
+*.ts | *.tsx | *.js | *.jsx | *.mjs | *.mts | *.cjs | *.cts) ;;
+*) exit 0 ;;
+esac
+
+original_bytes=$(wc -c < "$file_path")
+[ "$original_bytes" -ge "$min_bytes" ] || exit 0
+
+compacted=$(rtk read "$file_path" -l "$level" -n 2>/dev/null) || exit 0
+[ -n "$compacted" ] || exit 0
+
+compacted_bytes=$(printf '%s' "$compacted" | wc -c)
+[ "$compacted_bytes" -lt "$original_bytes" ] || exit 0
+
+jq -nc --arg out "$compacted" \
+    '{hookSpecificOutput:{hookEventName:"PostToolUse",updatedToolOutput:$out}}'
+exit 0

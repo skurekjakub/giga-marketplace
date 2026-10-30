@@ -128,7 +128,7 @@ repo has:
 
 | Where | Why it bites |
 |---|---|
-| `docs/conventions/*.md` | These are rules agents follow. A stale path makes the convention wrong, not just confusing. |
+| `{{CONVENTIONS_DIR}}/*.md` | These are rules agents follow. A stale path makes the convention wrong, not just confusing. |
 | `{{AI_DIR}}/dod/*.md` | Checklist items in `must` form naming helpers by path and symbol. |
 | `{{AI_DIR}}/diagrams/*.md` | Read as ground truth for orientation before touching a subsystem. |
 | `CLAUDE.md` / `AGENTS.md` | Loaded into context every session. Stale content here misdirects every agent. |

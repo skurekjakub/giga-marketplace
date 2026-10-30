@@ -6,8 +6,14 @@ import { fileURLToPath } from 'node:url';
 export const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const PACKS_DIR = path.join(PLUGIN_ROOT, 'templates', 'packs');
 export const GLOBAL_TOKENS = path.join(PLUGIN_ROOT, 'templates', 'placeholders.json');
+export const CHANGELOG = path.join(PLUGIN_ROOT, 'CHANGELOG.md');
 /** Install record, relative to the target repo. */
 export const RECORD = path.join('.claude', 'setup-ai.json');
+/**
+ * Folder under AI_DIR whose files belong to the repo owner: render never
+ * writes, records or deletes anything in it.
+ */
+export const EXTENSIONS_DIR = 'skill-extensions';
 /** `npx skills` needs this Node version; the engine itself needs only 18. */
 export const VENDOR_NODE_MIN = [22, 20];
 export const IS_WIN = process.platform === 'win32';
@@ -62,3 +68,21 @@ export function nodeAtLeast([maj, min]) {
 
 /** setup-ai's own version, from its plugin manifest. */
 export const pluginVersion = () => readJson(path.join(PLUGIN_ROOT, '.claude-plugin', 'plugin.json'), {}).version ?? '0.0.0';
+
+/**
+ * A comma-separated CLI flag value as a list of posix paths; `[]` when the
+ * flag is absent or bare.
+ */
+export const listArg = (v) => (typeof v === 'string' ? v.split(',').map((s) => s.trim().replace(/\\/g, '/')).filter(Boolean) : []);
+
+/**
+ * Semver comparison of `a` and `b` (`x.y.z`, pre-release suffixes ignored).
+ *
+ * @returns {number} Negative when `a` is older, 0 when equal, positive when newer.
+ */
+export function compareVersions(a, b) {
+  const parts = (v) => String(v ?? '0').split('-')[0].split('.').map((n) => Number(n) || 0);
+  const [x, y] = [parts(a), parts(b)];
+  for (let i = 0; i < 3; i++) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) - (y[i] ?? 0);
+  return 0;
+}

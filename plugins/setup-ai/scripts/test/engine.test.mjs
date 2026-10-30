@@ -27,8 +27,9 @@ const VALUES = {
   },
   options: {
     profile: 'nextjs',
-    hooks: ['block-destructive-bash', 'prefer-verify-script', 'format-on-edit', 'project-context', 'remind-rules', 'notify-done', 'ado-pr-body'],
-    agents: ['rubber-duk-review', 'rubber-duk-auditor', 'rubber-duk-backend', 'rubber-duk-frontend', 'rubber-duk-tests', 'rubber-duk-e2e'],
+    rulesImport: 'claude-md',
+    hooks: ['block-destructive-bash', 'prefer-verify-script', 'format-on-edit', 'project-context', 'remind-rules', 'notify-done', 'ado-pr-body', 'require-commit-format', 'rtk-read-compact'],
+    agents: ['rubber-duk-review', 'rubber-duk-auditor', 'rubber-duk-backend', 'rubber-duk-frontend', 'rubber-duk-tests', 'rubber-duk-e2e', 'rubber-duk-post'],
     issueSkills: ['file-jira-issue', 'test-issue', 'file-github-issue'],
     codeWork: 'yes',
     writingSkills: ['docs-write-release-notes', 'docs-write-hotfix-notes', 'docs-source-validation', 'docs-create-drawio-diagram', 'docs-gemini-style-review'],
@@ -367,4 +368,270 @@ test('the GitHub issue skill needs gh and none of the Jira setup', (t) => {
   assert.equal(render.ok, true, JSON.stringify(render.errors));
   assert.equal(fs.existsSync(path.join(repo.dir, '.mcp.json')), false);
   assert.match(fs.readFileSync(path.join(repo.dir, '.claude', 'skills', 'file-github-issue', 'SKILL.md'), 'utf8'), /--repo acme\/shop/);
+});
+
+const write = (dir, rel, text) => {
+  fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+  fs.writeFileSync(path.join(dir, rel), text);
+};
+const read = (dir, rel) => fs.readFileSync(path.join(dir, rel), 'utf8');
+const record = (dir) => JSON.parse(read(dir, '.claude/setup-ai.json'));
+
+test('render refuses an unset option instead of reading it as "none", and --defaults takes the defaults', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  const { hooks: _hooks, ...options } = VALUES.options;
+  fs.writeFileSync(repo.values, JSON.stringify({ ...VALUES, options }));
+  // Act
+  const refused = engine('render', '--dest', repo.dir, '--packs', 'hooks', '--values', repo.values);
+  const wroteOnRefusal = fs.existsSync(path.join(repo.dir, '.claude', 'setup-ai.json'));
+  const defaulted = engine('render', '--dest', repo.dir, '--packs', 'hooks', '--values', repo.values, '--defaults');
+  // Assert
+  assert.equal(refused.ok, false);
+  assert.deepEqual(refused.missingOptions, ['hooks']);
+  assert.equal(wroteOnRefusal, false);
+  assert.equal(defaulted.ok, true, JSON.stringify(defaulted.errors));
+  assert.ok(fs.existsSync(path.join(repo.dir, '.claude', 'hooks', 'block-destructive-bash')));
+  assert.ok(record(repo.dir).options.hooks.includes('block-destructive-bash'));
+});
+
+test('path tokens default to the old paths and follow a convention doc the repo already has', (t) => {
+  // Arrange
+  const fresh = scratchRepo();
+  const owned = scratchRepo();
+  t.after(fresh.cleanup);
+  t.after(owned.cleanup);
+  write(owned.dir, '.ai/comment-policy.md', '# Our policy\n');
+  write(owned.dir, '.ai/shared/commit-and-pr-format.md', '# Commits\n');
+  write(owned.dir, '.ai/shared/voice-style-guide.md', '# Voice\n');
+  // Act
+  engine('render', '--dest', fresh.dir, '--packs', 'review-agents,baseline', '--values', fresh.values);
+  const facts = engine('detect', '--dest', owned.dir);
+  // Assert
+  assert.ok(fs.existsSync(path.join(fresh.dir, 'docs', 'conventions', 'comment-policy.md')));
+  assert.ok(fs.existsSync(path.join(fresh.dir, 'docs', 'gotchas.md')));
+  assert.ok(fs.existsSync(path.join(fresh.dir, '.agents', 'resources', 'pr-guidelines.md')));
+  assert.match(read(fresh.dir, '.claude/agents/rubber-duk-review.md'), /`docs\/conventions\/comment-policy\.md` is authoritative/);
+  assert.equal(record(fresh.dir).tokens.COMMENT_POLICY_PATH, 'docs/conventions/comment-policy.md');
+  assert.equal(facts.tokens.COMMENT_POLICY_PATH, '.ai/comment-policy.md');
+  assert.equal(facts.tokens.PR_GUIDE_PATH, '.ai/shared/commit-and-pr-format.md');
+  assert.equal(facts.tokens.STYLE_GUIDE_DIR, '.ai/shared');
+  assert.equal(facts.flags.existingWorkspace, true);
+});
+
+test('adopting keeps the repo file, records it as the baseline, and only re-raises it when the template moves', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  write(repo.dir, '.claude/agents/rubber-duk-review.md', '# our reviewer\n');
+  write(repo.dir, '.claude/agents/rubber-duk.md', '# our single reviewer\n');
+  const values = { ...VALUES, options: { ...VALUES.options, agents: ['rubber-duk-review', 'rubber-duk-post'] } };
+  fs.writeFileSync(repo.values, JSON.stringify(values));
+  // Act
+  const plan = engine('plan', '--dest', repo.dir, '--packs', 'review-agents', '--values', repo.values);
+  const render = engine('render', '--dest', repo.dir, '--packs', 'review-agents', '--values', repo.values, '--adopt', 'all');
+  const update = engine('render', '--dest', repo.dir, '--packs', 'review-agents', '--values', repo.values, '--update');
+  const status = engine('status', '--dest', repo.dir);
+  const removed = engine('remove', '--dest', repo.dir, '--packs', 'review-agents');
+  // Assert
+  assert.deepEqual(plan.existing.map((e) => [e.dest, e.file, e.how]).sort(), [
+    ['.claude/agents/rubber-duk-post.md', '.claude/agents/rubber-duk.md', 'equivalent'],
+    ['.claude/agents/rubber-duk-review.md', '.claude/agents/rubber-duk-review.md', 'same-path'],
+  ]);
+  assert.equal(render.ok, true, JSON.stringify(render.errors));
+  assert.deepEqual(render.adopted.map((a) => a.file).sort(), ['.claude/agents/rubber-duk-review.md', '.claude/agents/rubber-duk.md']);
+  assert.equal(fs.existsSync(path.join(repo.dir, '.claude', 'agents', 'rubber-duk-post.md')), false);
+  assert.deepEqual(update.conflicts, []);
+  assert.equal(update.adopted.length, 2);
+  assert.equal(status.files.counts.adopted, 2);
+  assert.deepEqual(status.files.missing, []);
+  assert.equal(read(repo.dir, '.claude/agents/rubber-duk-review.md'), '# our reviewer\n');
+  assert.equal(removed.ok, true, JSON.stringify(removed.errors));
+  assert.deepEqual(removed.files.keptAdopted.sort(), ['.claude/agents/rubber-duk-review.md', '.claude/agents/rubber-duk.md']);
+  assert.ok(fs.existsSync(path.join(repo.dir, '.claude', 'agents', 'rubber-duk.md')));
+});
+
+test('an adopted file whose template changed since comes back as a conflict on update', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  write(repo.dir, '.claude/agents/rubber-duk-review.md', '# our reviewer\n');
+  engine('render', '--dest', repo.dir, '--packs', 'review-agents', '--values', repo.values, '--adopt', '.claude/agents/rubber-duk-review.md');
+  const rec = record(repo.dir);
+  rec.files['.claude/agents/rubber-duk-review.md'].hash = 'older-template';
+  write(repo.dir, '.claude/setup-ai.json', JSON.stringify(rec));
+  // Act
+  const update = engine('render', '--dest', repo.dir, '--packs', 'review-agents', '--values', repo.values, '--update');
+  // Assert
+  assert.deepEqual(update.conflicts, ['.claude/agents/rubber-duk-review.md']);
+  assert.equal(read(repo.dir, '.claude/agents/rubber-duk-review.md'), '# our reviewer\n');
+});
+
+test('diff shows each conflict as a unified diff and lists the lines the template would drop', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  engine('render', '--dest', repo.dir, '--packs', 'baseline', '--values', repo.values);
+  const rules = '.agents/agent-working-rules.md';
+  fs.appendFileSync(path.join(repo.dir, rules), '\n- Every change ends with a `CHANGELOG.md` entry; see `.ai/shared/commit-and-pr-format.md`.\n');
+  // Act
+  const res = engine('diff', '--dest', repo.dir, '--packs', 'baseline', '--values', repo.values);
+  // Assert
+  assert.equal(res.ok, true, res.error);
+  assert.equal(res.files.length, 1);
+  assert.equal(res.files[0].dest, rules);
+  assert.match(res.files[0].diff, /^-- Every change ends with a `CHANGELOG\.md` entry/m);
+  assert.deepEqual(res.files[0].wouldDrop.flatMap((d) => d.refs).sort(), ['.ai/shared/commit-and-pr-format.md', 'CHANGELOG.md']);
+});
+
+test('render never writes the skill-extensions folder and the workflows point at it', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  write(repo.dir, '.agents/skill-extensions/feature-development.md', '## finish\n\n- Add a CHANGELOG.md entry.\n');
+  // Act
+  const res = engine('render', '--dest', repo.dir, '--packs', 'dev-workflow', '--values', repo.values);
+  // Assert
+  assert.equal(res.ok, true, JSON.stringify(res.errors));
+  assert.equal(res.written.some((w) => w.dest.includes('skill-extensions')), false);
+  assert.equal(Object.keys(record(repo.dir).files).some((f) => f.includes('skill-extensions')), false);
+  assert.equal(read(repo.dir, '.agents/skill-extensions/feature-development.md'), '## finish\n\n- Add a CHANGELOG.md entry.\n');
+  for (const skill of ['feature-development', 'project-bugfixing', 'codebase-refactoring', 'codebase-analysis']) {
+    assert.match(read(repo.dir, `.claude/skills/${skill}/SKILL.md`), new RegExp(`\\.agents/skill-extensions/${skill}\\.md`));
+  }
+});
+
+test('settings.json is edited in place: comment keys, blank lines and untouched arrays keep their text', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  const original = '{\n    "//": "Project settings; overrides go in settings.local.json.",\n\n    "permissions": {\n        "deny": ["Bash(npm publish*)"]\n    }\n}\n';
+  write(repo.dir, '.claude/settings.json', original);
+  fs.writeFileSync(repo.values, JSON.stringify({ ...VALUES, options: { ...VALUES.options, hooks: ['block-destructive-bash'] } }));
+  // Act
+  engine('render', '--dest', repo.dir, '--packs', 'hooks', '--values', repo.values);
+  const after = read(repo.dir, '.claude/settings.json');
+  const again = engine('render', '--dest', repo.dir, '--packs', 'hooks', '--values', repo.values);
+  // Assert
+  assert.ok(after.startsWith('{\n    "//": "Project settings; overrides go in settings.local.json.",\n\n    "permissions": {\n        "deny": ["Bash(npm publish*)"]\n    },\n    "hooks": {\n        "PreToolUse": [\n'), after);
+  assert.equal(JSON.parse(after).hooks.PreToolUse[0].matcher, 'Bash');
+  assert.equal(again.settings, 'unchanged');
+  assert.equal(read(repo.dir, '.claude/settings.json'), after);
+});
+
+test('editJson removes and adds keys without touching the members around them', async () => {
+  // Arrange
+  const { editJson } = await import('../lib/json-edit.mjs');
+  const text = '{\n  "a": [1, 2],\n\n  "gone": { "x": 1 },\n  "b": "keep"\n}\n';
+  // Act
+  const removed = editJson(text, { a: [1, 2], b: 'keep' });
+  const added = editJson(text, { a: [1, 2], gone: { x: 1 }, b: 'keep', c: { d: true } });
+  // Assert
+  assert.equal(removed, '{\n  "a": [1, 2],\n  "b": "keep"\n}\n');
+  assert.equal(added, '{\n  "a": [1, 2],\n\n  "gone": { "x": 1 },\n  "b": "keep",\n  "c": {\n    "d": true\n  }\n}\n');
+  assert.equal(editJson(text, JSON.parse(text)), text);
+});
+
+test('a hook the repo already wires through a wrapper is not added a second time', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  const wrapped = (name) => ({ type: 'command', command: `"\${CLAUDE_PROJECT_DIR}/.claude/hooks/run-hook.cmd" ${name}` });
+  write(repo.dir, '.claude/settings.json', JSON.stringify({
+    '//': 'keep me',
+    hooks: {
+      PostToolUse: [{ matcher: 'Edit|Write|MultiEdit|Bash', hooks: [wrapped('remind-rules')] }],
+      PreToolUse: [{ matcher: 'Bash', hooks: [wrapped('block-destructive-bash')] }],
+    },
+  }, null, 2));
+  fs.writeFileSync(repo.values, JSON.stringify({ ...VALUES, options: { ...VALUES.options, hooks: ['block-destructive-bash', 'remind-rules'] } }));
+  // Act
+  engine('render', '--dest', repo.dir, '--packs', 'hooks', '--values', repo.values);
+  // Assert
+  const settings = JSON.parse(read(repo.dir, '.claude/settings.json'));
+  const commands = (event) => settings.hooks[event].flatMap((e) => e.hooks.map((h) => h.command));
+  assert.equal(settings['//'], 'keep me');
+  assert.equal(commands('PostToolUse').filter((c) => c.includes('remind-rules')).length, 1);
+  assert.equal(commands('PreToolUse').filter((c) => c.includes('block-destructive-bash')).length, 1);
+  assert.equal(commands('UserPromptSubmit').filter((c) => c.includes('remind-rules')).length, 1);
+});
+
+test('an AGENTS.md-only repo gets the rules import in AGENTS.md and no CLAUDE.md', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  write(repo.dir, 'AGENTS.md', '# Agents\n');
+  const { rulesImport: _r, ...options } = VALUES.options;
+  fs.writeFileSync(repo.values, JSON.stringify({ ...VALUES, options }));
+  // Act
+  const plan = engine('plan', '--dest', repo.dir, '--packs', 'baseline', '--values', repo.values);
+  const render = engine('render', '--dest', repo.dir, '--packs', 'baseline', '--values', repo.values, '--defaults');
+  // Assert
+  assert.equal(plan.optionDefaults.rulesImport, 'agents-md');
+  assert.equal(render.ok, true, JSON.stringify(render.errors));
+  assert.equal(fs.existsSync(path.join(repo.dir, 'CLAUDE.md')), false);
+  assert.equal(read(repo.dir, 'AGENTS.md'), '# Agents\n\n@.agents/agent-working-rules.md\n');
+  assert.match(read(repo.dir, '.agents/agent-working-rules.md'), /imported from `AGENTS\.md`/);
+});
+
+test('placeholder values fill skeleton placeholders, and plan suggests candidates for the rest', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  write(repo.dir, 'app/components/Callout.tsx', 'export {};\n');
+  write(repo.dir, 'tests/lib/x.test.ts', '');
+  // Act
+  const plan = engine('plan', '--dest', repo.dir, '--packs', 'dev-workflow', '--values', repo.values);
+  fs.writeFileSync(repo.values, JSON.stringify({ ...VALUES, placeholders: { ReferenceComponentPath: 'app/components/Callout.tsx' } }));
+  const render = engine('render', '--dest', repo.dir, '--packs', 'dev-workflow', '--values', repo.values);
+  // Assert
+  const ui = plan.todos.find((x) => x.file.endsWith('ui-surface-rules.md'));
+  assert.deepEqual(ui.suggestions.ReferenceComponentPath, ['app/components/Callout.tsx']);
+  assert.ok(plan.todos.find((x) => x.file.endsWith('test-layout.md')).suggestions.DescribeWhereIntegrationTestsLive[0].startsWith('tests/'));
+  assert.equal(render.todos.some((x) => x.placeholders.includes('ReferenceComponentPath')), false);
+  assert.match(read(repo.dir, '.claude/skills/feature-development/references/ui-surface-rules.md'), /app\/components\/Callout\.tsx/);
+  assert.equal(record(repo.dir).placeholders.ReferenceComponentPath, 'app/components/Callout.tsx');
+});
+
+test('the record carries provenance and status lists the changelog since the recorded version', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  engine('render', '--dest', repo.dir, '--packs', 'baseline', '--values', repo.values);
+  const rec = record(repo.dir);
+  write(repo.dir, '.claude/setup-ai.json', JSON.stringify({ ...rec, setupAiVersion: '0.2.3' }));
+  // Act
+  const status = engine('status', '--dest', repo.dir);
+  // Assert
+  assert.equal(rec.setupAiSource.marketplace, 'giga-marketplace');
+  assert.match(rec.setupAiSource.commit ?? '', /^[0-9a-f]{40}$/);
+  assert.ok(status.changelog.length >= 1);
+  assert.ok(status.changelog.every((e) => e.version !== '0.2.3'));
+  assert.ok(status.suggest.includes('update'));
+});
+
+test('detect reports skills vendored from a plugin of this marketplace', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  write(repo.dir, '.claude/skills/iterative-research/SKILL.md', '---\nname: iterative-research\n---\n');
+  write(repo.dir, '.claude/skills/our-own/SKILL.md', '---\nname: our-own\n---\n');
+  // Act
+  const facts = engine('detect', '--dest', repo.dir);
+  // Assert
+  assert.equal(facts.vendoredDuplicates.available, true);
+  assert.deepEqual(facts.vendoredDuplicates.duplicates.map((d) => [d.skill, d.id]), [['iterative-research', 'research-planning@giga-marketplace']]);
+});
+
+test('prereqs --update refreshes marketplaces and updates plugins from the repo directory', (t) => {
+  // Arrange
+  const repo = scratchRepo();
+  t.after(repo.cleanup);
+  // Act
+  const res = engine('prereqs', '--dest', repo.dir, '--packs', 'review-agents', '--values', repo.values, '--update', '--dry-run');
+  // Assert
+  const steps = res.results.map((r) => r.step);
+  assert.ok(steps.includes('claude plugin marketplace update giga-marketplace'), JSON.stringify(steps));
+  assert.ok(res.results.filter((r) => r.step.startsWith('claude ')).every((r) => r.cwd === repo.dir));
 });

@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { PACKS_DIR, GLOBAL_TOKENS, die, exists, isText, posix, readJson, walk } from './util.mjs';
+import { EXTENSIONS_DIR, PACKS_DIR, GLOBAL_TOKENS, die, exists, isText, posix, readJson, walk } from './util.mjs';
 import { evalCond } from './conditions.mjs';
-import { TOKEN_RE, applyConditionals, destRel, renderTokens, stripBanner } from './template.mjs';
+import { TOKEN_RE, applyConditionals, destRel, renderPlaceholders, renderTokens, stripBanner, todoPlaceholders } from './template.mjs';
 import { filterSettings } from './settings.mjs';
 
 /**
@@ -69,22 +69,28 @@ function selectedFiles(pack, ctx) {
 
 /**
  * Renders every selected template file in memory: conditionals, banner strip,
- * tokens. Binary files pass through untouched.
+ * tokens, then the skeleton placeholders the values file fills
+ * (`ctx.placeholders`). Binary files pass through untouched.
  *
  * @returns {{pack, src, dest, buf: Buffer, text: ?string}[]}
+ * @throws {Error} When a pack file would land under `<AI_DIR>/skill-extensions/`,
+ *   which belongs to the repo owner.
  */
 export function buildFiles(all, order, ctx) {
   const files = [];
+  const userOwned = `${ctx.tokens.AI_DIR ?? '.ai'}/${EXTENSIONS_DIR}/`;
   for (const name of order) {
     for (const [abs, rel] of selectedFiles(all[name], ctx)) {
       let buf = fs.readFileSync(abs);
       let text = null;
       if (isText(buf)) {
         text = applyConditionals(buf.toString('utf8'), ctx, `${name}/${posix(rel)}`);
-        text = renderTokens(stripBanner(text), ctx.tokens);
+        text = renderPlaceholders(renderTokens(stripBanner(text), ctx.tokens), ctx.placeholders ?? {});
         buf = Buffer.from(text, 'utf8');
       }
-      files.push({ pack: name, src: posix(rel), dest: destRel(rel, ctx.tokens), buf, text });
+      const dest = destRel(rel, ctx.tokens);
+      if (dest.startsWith(userOwned)) throw new Error(`${name}/${posix(rel)} renders into ${userOwned}, which only the repo owner writes`);
+      files.push({ pack: name, src: posix(rel), dest, buf, text });
     }
   }
   return files;
@@ -135,6 +141,24 @@ export function defaultFor(opt, ctx) {
   if (opt.type === 'multi') return opt.choices.filter(on).map((c) => c.value);
   if (opt.defaultFrom === 'detect') return ctx.detect.options?.[opt.key] ?? opt.default ?? null;
   return (opt.choices ?? []).find(on)?.value ?? opt.default ?? null;
+}
+
+/**
+ * Skeleton placeholders (`{{PascalCase}}`) still in rendered files, per
+ * file, with the candidate values `detect` found for them (best first).
+ *
+ * @param {{dest: string, text: ?string}[]} files - From `buildFiles`.
+ * @param {{detect: {placeholderSuggestions?: Record<string, string[]>}}} ctx
+ * @returns {{file: string, placeholders: string[], suggestions: Record<string, string[]>}[]}
+ */
+export function fileTodos(files, ctx) {
+  const known = ctx.detect.placeholderSuggestions ?? {};
+  return files.filter((f) => f.text).flatMap((f) => {
+    const placeholders = todoPlaceholders(f.text);
+    if (!placeholders.length) return [];
+    const suggestions = Object.fromEntries(placeholders.filter((p) => known[p]).map((p) => [p, known[p]]));
+    return [{ file: f.dest, placeholders, suggestions }];
+  });
 }
 
 /** Manual steps the packs leave the user (pack.json `todo`), filtered by `when`. */

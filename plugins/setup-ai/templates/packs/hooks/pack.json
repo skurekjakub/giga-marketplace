@@ -1,8 +1,8 @@
 {
   "name": "hooks",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "title": "Guard-rail hooks",
-  "summary": "Bash hooks wired into .claude/settings.json: block destructive git/rm commands, steer to one verify command, format on edit, re-inject project context after compaction, periodic rule reminders, done notifications, ADO PR body limits.",
+  "summary": "Bash hooks wired into .claude/settings.json: block destructive git/rm commands, steer to one verify command, require commit bodies, format on edit, re-inject project context after compaction, periodic rule reminders, done notifications, ADO PR body limits, rtk-compacted source reads.",
   "requires": {
     "cli": [
       {
@@ -13,6 +13,12 @@
       {
         "name": "jq",
         "why": "Hooks read their JSON payload with jq. Without it block-destructive-bash falls back to raw matching and the other hooks silently do nothing."
+      },
+      {
+        "name": "rtk",
+        "when": "option:hooks=rtk-read-compact",
+        "optional": true,
+        "why": "rtk-read-compact compacts reads with `rtk read`; without rtk it passes every read through unchanged."
       }
     ]
   },
@@ -42,7 +48,7 @@
         {
           "value": "project-context",
           "label": "Re-inject project context",
-          "description": "SessionStart (startup, compact): AGENTS.md (if not imported by CLAUDE.md), memory index, branch.",
+          "description": "SessionStart (startup, compact): AGENTS.md (when a CLAUDE.md exists and doesn't import it), memory index, branch.",
           "default": true
         },
         {
@@ -62,6 +68,18 @@
           "label": "Azure DevOps PR body guard",
           "description": "PreToolUse on ADO PR create/update MCP tools: injects PR guidelines, blocks bodies over 4000 chars.",
           "defaultWhen": "detect:ado"
+        },
+        {
+          "value": "require-commit-format",
+          "label": "Require commit and PR bodies",
+          "description": "PreToolUse/Bash: denies a git commit whose message is a single -m subject, and gh pr create --fill; points at PR_GUIDE_PATH.",
+          "default": false
+        },
+        {
+          "value": "rtk-read-compact",
+          "label": "Compact large source reads with rtk",
+          "description": "PostToolUse/Read: returns `rtk read` signatures instead of full bodies for large JS/TS files; needs the rtk CLI, passes through without it.",
+          "default": false
         }
       ]
     }
@@ -74,7 +92,9 @@
     "dot-claude/hooks/remind-rules": "option:hooks=remind-rules",
     "{{AI_DIR}}/reminders.md": "option:hooks=remind-rules",
     "dot-claude/hooks/notify-done": "option:hooks=notify-done",
-    "dot-claude/hooks/ado-pr-body": "option:hooks=ado-pr-body"
+    "dot-claude/hooks/ado-pr-body": "option:hooks=ado-pr-body",
+    "dot-claude/hooks/require-commit-format": "option:hooks=require-commit-format",
+    "dot-claude/hooks/rtk-read-compact": "option:hooks=rtk-read-compact"
   },
   "settings": {
     "hooks": {
@@ -98,6 +118,17 @@
               "type": "command",
               "shell": "bash",
               "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/prefer-verify-script\""
+            }
+          ]
+        },
+        {
+          "@when": "option:hooks=require-commit-format",
+          "matcher": "Bash",
+          "hooks": [
+            {
+              "type": "command",
+              "shell": "bash",
+              "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/require-commit-format\""
             }
           ]
         },
@@ -133,6 +164,17 @@
               "type": "command",
               "shell": "bash",
               "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/remind-rules\""
+            }
+          ]
+        },
+        {
+          "@when": "option:hooks=rtk-read-compact",
+          "matcher": "Read",
+          "hooks": [
+            {
+              "type": "command",
+              "shell": "bash",
+              "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/rtk-read-compact\""
             }
           ]
         }

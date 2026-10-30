@@ -18,6 +18,15 @@ workflow in order.
 
 ## Ground rules
 
+### Project extensions
+
+If `{{AI_DIR}}/skill-extensions/feature-development.md` exists, read it before
+anything else: it holds this repo's additions to this skill, kept outside it
+so template updates never overwrite them. Its `## rules` section binds every
+phase; `## scope`, `## before-dispatch`, `## verify` and `## finish` apply
+where this file says **Extension point**. Where it contradicts this file, the
+extension wins. Repo-specific rules go there, never into this file.
+
 ### When this skill applies
 
 Use it for non-trivial new capability — a new route or endpoint with its UI,
@@ -40,6 +49,9 @@ costs the design record entirely.
 
 ### Seats: who does what, on which model
 
+**Extension point `before-dispatch`:** every subagent brief also carries the
+extension file's `## before-dispatch` section (a model rule, a required read).
+
 Every review and implementation seat is a `rubber-duk-*` agent, never
 `general-purpose` or a generic reviewer. Pass `model` explicitly on every
 dispatch — an omitted `model` inherits the session's, never the intended
@@ -55,7 +67,7 @@ Phase 4 sets out when implementers may run in parallel.
 
 ### Every comment follows the comment policy
 
-Read `docs/conventions/comment-policy.md` before writing code in any phase
+Read `{{COMMENT_POLICY_PATH}}` before writing code in any phase
 and again before reviewing a diff — it's enforced, not advisory, and a
 violation in the diff is a review finding like any other. Displaced content
 has a home: _why this approach_ → commit message; _behaviour that must keep
@@ -78,7 +90,7 @@ This is designed in, not bolted on after:
 - **Spec:** a **"Refactoring & reorganization"** section — the target module
   tree, the rename list (old → new), and the ripple inventory (importers,
   build and tooling config that names paths — bundler tracing globs, lint
-  and boundary allowlists — naming conventions in `docs/conventions/`, and
+  and boundary allowlists — naming conventions in `{{CONVENTIONS_DIR}}/`, and
   tests bound to moved modules).
 - **Plan:** moves and renames are tracked tasks with their own verification
   (typecheck plus the affected suites), sequenced so each move lands
@@ -92,6 +104,9 @@ subsystems. Test each module: _"does its location and name still make sense
 after this change?"_ If not, move and rename it.
 
 ### Scope discipline and follow-ups
+
+**Extension point `scope`:** the extension file's `## scope` section adds the
+paths and areas this work never touches.
 
 The rule against unrelated refactoring holds through every phase, with one
 exception: a sync→async flip. The codebase is async-first
@@ -299,7 +314,7 @@ Every feature with user-facing behaviour ships end-to-end coverage, not just
 unit/integration tests — a gate separate from the Phase 5 smoke test: smoke
 is a one-shot inspection, e2e is committed, repeatable regression coverage.
 
-Dispatch `rubber-duk-e2e` (WRITE). Read `docs/conventions/e2e-conventions.md`
+Dispatch `rubber-duk-e2e` (WRITE). Read `{{CONVENTIONS_DIR}}/e2e-conventions.md`
 for the E1–E7 yardstick and how the suite runs. Specs go under
 `{{E2E_GLOB}}` and run with `{{E2E_CMD}}`.
 
@@ -344,6 +359,9 @@ UI, routes, content renderers, chrome — always smoke-tests.
 
 ### Phase 6 — Review
 
+**Extension point `verify`:** run the extension file's `## verify` gates
+alongside `{{VERIFY_CMD}}`.
+
 In order:
 
 1. `superpowers:requesting-code-review` — runs against the branch base;
@@ -374,6 +392,9 @@ BLOCKER/IMPORTANT from the test audit — dispatch implementation subagents
 (or fix inline if trivial) and rebut any rejected findings explicitly.
 
 ### Phase 7 — Finish
+
+**Extension point `finish`:** the extension file's `## finish` steps (a
+changelog entry, the commit-message format) run before the commit.
 
 The orchestrator writes `README.md` first, brings `{{AI_DIR}}/diagrams/` in line
 with the code, walks the definition of done, then invokes

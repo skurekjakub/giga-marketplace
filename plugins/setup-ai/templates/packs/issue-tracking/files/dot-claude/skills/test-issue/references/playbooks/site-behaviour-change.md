@@ -47,7 +47,7 @@ A behaviour is verified when all three agree with the plan.
   fix?) only if the requester asks — it means editing the tree, in a worktree.
 - The e2e spec's assertions, read. A spec name that matches the ticket still needs its
   assertions read before it is cited.
-- `docs/gotchas.md` — before diagnosing an "unexpected" behaviour as a defect, check whether
+- `{{GOTCHAS_PATH}}` — before diagnosing an "unexpected" behaviour as a defect, check whether
   it is a recorded framework trap.
 
 ## Traps

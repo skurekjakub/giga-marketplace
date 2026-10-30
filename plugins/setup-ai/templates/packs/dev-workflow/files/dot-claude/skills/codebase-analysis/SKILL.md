@@ -19,7 +19,19 @@ where it lives, and **the phases** define the workflow in order.
 
 ## Ground rules
 
+### Project extensions
+
+If `{{AI_DIR}}/skill-extensions/codebase-analysis.md` exists, read it before
+anything else: it holds this repo's additions to this skill, kept outside it
+so template updates never overwrite them. Its `## rules` section binds every
+phase; `## scope`, `## before-dispatch` and `## finish` apply where this file
+says **Extension point**. Where it contradicts this file, the extension wins.
+Repo-specific rules go there, never into this file.
+
 ### Seats: who does what, on which model
+
+**Extension point `before-dispatch`:** every subagent brief also carries the
+extension file's `## before-dispatch` section (a model rule, a required read).
 
 The orchestrator — the session running this skill — writes every finding,
 takes every measurement, and makes every judgement call; subagents only
@@ -41,7 +53,7 @@ Order of evidence, highest first:
 
 1. installed framework source (for example `node_modules/<framework>/**`) —
    cite `file:line`;
-2. the version-matched framework docs `docs/conventions/stack-profile.md`
+2. the version-matched framework docs `{{CONVENTIONS_DIR}}/stack-profile.md`
    points at — cite `path:line`; they match the installed version, training
    data does not;
 3. library source (`node_modules/<pkg>/…` or the ecosystem's equivalent);
@@ -81,7 +93,7 @@ the done-criteria. Read it before writing the first file. The parts that take
 the longest are the parts that make the file usable:
 
 - **Solution code** is full replacement code for the changed parts, doc
-  comments per `docs/conventions/comment-policy.md`, no archaeology comments, no
+  comments per `{{COMMENT_POLICY_PATH}}`, no archaeology comments, no
   narrative. Include the "looks wrong but isn't" list — every question a
   reviewer will ask, answered with a precedent in the repo or a locator.
 - **Tests** name the files to touch and the behaviour each new test pins.
@@ -94,7 +106,7 @@ the longest are the parts that make the file usable:
   step and the exact command or env flag (a debug env var,
   `curl -w '%{time_starttransfer}'`, the build-log line).
 - **Commit and PR**: the why goes in the commit message, never in comments;
-  bullets per `{{AI_DIR}}/resources/pr-guidelines.md`; rollback cost in one line.
+  bullets per `{{PR_GUIDE_PATH}}`; rollback cost in one line.
 - **Workflow**: say whether the implementer runs `feature-development` or
   `codebase-refactoring`, by deliverable (new behaviour vs nothing moved).
 
@@ -145,6 +157,9 @@ tracker issue, if one exists.
 | 7 | Explain and recap | `{{AI_DIR}}/resources/skills/explainer-template.html` + `Artifact` | `<YYYYMMDD>-<sweep-slug>-explainer.html`, published; one chat line per file | never |
 
 ### Phase 0 — Scope
+
+**Extension point `scope`:** the extension file's `## scope` section adds the
+paths and areas an analysis leaves out.
 
 Take the target literally: a path (`src/billing/`), a route
 (`/checkout`), a theme over an area ("performance of the search route"), or
@@ -249,6 +264,9 @@ Before handing over, for every file:
 
 ### Phase 7 — Explain, then recap
 
+**Extension point `finish`:** the extension file's `## finish` steps run
+before the recap.
+
 Write and publish the explainer to the contract in the journal section, from
 the finished findings files, and hand the user the URL.
 
@@ -263,8 +281,8 @@ gets implemented; offer to start any of them, don't start.
 - `references/measurement-recipes.md` — commands for file stats,
   benchmarks, timing, payload byte counts, build-log retrieval, and the shell
   traps that cost a round trip.
-- `docs/conventions/comment-policy.md`, the rest of `docs/conventions/`,
-  `{{AI_DIR}}/resources/pr-guidelines.md` — the conventions a solution section must
+- `{{COMMENT_POLICY_PATH}}`, the rest of `{{CONVENTIONS_DIR}}/`,
+  `{{PR_GUIDE_PATH}}` — the conventions a solution section must
   already satisfy.
 - `{{AI_DIR}}/followups/README.md` — the naming rule, the file shape, and what is not
   a follow-up.

@@ -8,21 +8,25 @@
  * JSON document on stdout so the agent reads results instead of parsing prose.
  *
  *   catalog                                     list packs and global tokens
- *   detect   --dest <repo>                      repo facts + inferred token/option values
- *   plan     --dest <repo> --packs a,b [--values v.json] [--update] [--overwrite p1,p2]
- *                                               deps, prerequisites, missing tokens, file actions (writes nothing)
- *   prereqs  --dest <repo> --packs a,b [--values v.json]
- *                                               install missing marketplaces, plugins and vendor skills
- *   render   --dest <repo> --packs a,b --values v.json [--dry-run] [--overwrite p1,p2|all] [--update]
+ *   detect   --dest <repo>                      repo facts, inferred token/option values, existing workspace files,
+ *                                               vendored marketplace skills, placeholder candidates
+ *   plan     --dest <repo> --packs a,b [--values v.json] [--update] [--overwrite p1,p2] [--adopt p1,p2|all] [--defaults]
+ *                                               deps, prerequisites, missing tokens/options, file actions, existing files (writes nothing)
+ *   diff     --dest <repo> --packs a,b --values v.json [--files p1,p2] [--summary] [--keep] [--context n]
+ *                                               per conflicting/adoptable file: unified diff + lines the template would drop
+ *   prereqs  --dest <repo> --packs a,b [--values v.json] [--update] [--dry-run]
+ *                                               install missing marketplaces, plugins and vendor skills; --update refreshes them
+ *   render   --dest <repo> --packs a,b --values v.json [--dry-run] [--overwrite p1,p2|all] [--adopt p1,p2|all] [--update] [--defaults]
  *                                               write files, appends, settings, .mcp.json, install record
- *   status   --dest <repo>                      installed packs, file states, prerequisites (writes nothing)
+ *   status   --dest <repo>                      installed packs, file states, prerequisites, changelog since install (writes nothing)
  *   remove   --dest <repo> --packs a,b [--dry-run] [--delete-edited p1,p2|all] [--prune-vendor-skills]
  *                                               uninstall packs and re-render the rest
  *   vendor   check|install|restore --dest <repo> [--packs a,b] [--values v.json]
  *   session-check [--dest <repo>]               the plugin's SessionStart hook
  *
  * values.json: { "tokens": { "PROJECT_NAME": "…" }, "options": { "profile": "nextjs", … },
- *               "packageScripts": { "verify": "npm run lint && npm test" } }
+ *               "packageScripts": { "verify": "npm run lint && npm test" },
+ *               "placeholders": { "ReferenceComponentPath": "src/components/Button.tsx" } }
  * Install record: <repo>/.claude/setup-ai.json (commit it).
  *
  * Layout: lib/ holds the shared modules (templating, packs, settings,
@@ -35,6 +39,7 @@ import { cmdCatalog } from './commands/catalog.mjs';
 import { cmdPlan } from './commands/plan.mjs';
 import { cmdPrereqs } from './commands/prereqs.mjs';
 import { cmdRender } from './commands/render.mjs';
+import { cmdDiff } from './commands/diff.mjs';
 import { cmdVendor } from './commands/vendor.mjs';
 import { cmdStatus } from './commands/status.mjs';
 import { cmdRemove } from './commands/remove.mjs';
@@ -64,6 +69,7 @@ const COMMANDS = {
   plan: cmdPlan,
   prereqs: cmdPrereqs,
   render: cmdRender,
+  diff: cmdDiff,
   status: cmdStatus,
   remove: cmdRemove,
   vendor: cmdVendor,

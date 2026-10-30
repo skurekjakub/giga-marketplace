@@ -73,7 +73,7 @@ Name the exact command or env flag.
 
 ### 4. Commit and PR
 Commit subject; what the message must carry (the why — it does not go into
-comments); PR bullets per `{{AI_DIR}}/resources/pr-guidelines.md`; rollback cost.
+comments); PR bullets per `{{PR_GUIDE_PATH}}`; rollback cost.
 
 ## Expected effect
 

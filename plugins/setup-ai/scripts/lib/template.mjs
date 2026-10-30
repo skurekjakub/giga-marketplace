@@ -43,6 +43,19 @@ export function renderTokens(text, tokens) {
 }
 
 /**
+ * Replaces each skeleton placeholder (`{{PascalCase}}`) named in `values`
+ * with its value; placeholders without one are left for the user.
+ *
+ * @param {string} text
+ * @param {Record<string, string>} values - Placeholder name to replacement.
+ * @returns {string}
+ */
+export function renderPlaceholders(text, values) {
+  if (!Object.keys(values).length) return text;
+  return text.replace(TODO_RE, (m, name) => (name in values ? String(values[name]) : m));
+}
+
+/**
  * Removes the "> **Template skill — fill in before use.**" blockquote and the
  * blank line after it. Inline "> **Template note:**" and "> **Adapt me.**"
  * blocks are kept — they mark work the user still owns.

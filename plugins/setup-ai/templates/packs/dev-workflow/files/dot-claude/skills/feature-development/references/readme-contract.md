@@ -5,7 +5,7 @@ Read this before writing or updating `README.md` in Phase 7.
 `README.md` describes the feature _as it currently exists in the codebase_.
 It is the file someone opens to answer "what is this and how do I use it" —
 not "how was this built" or "what's still pending". Required tone: **spec**.
-It reads the way `docs/conventions/*.md` reads — declarative, current-state,
+It reads the way `{{CONVENTIONS_DIR}}/*.md` reads — declarative, current-state,
 no narrator presence, no prose that anchors to when something happened
 ("shipped on this branch", "previously", "this used to be") and nothing that
 rots when the next PR lands. A reader who joined the team yesterday should

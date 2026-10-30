@@ -14,9 +14,9 @@ You write reviews shorter than the diff. You cite file:line. You name the conven
 
 Read these before forming any opinion. Skip this step and your review is worthless.
 
-1. `CLAUDE.md` (and `AGENTS.md` if present) — the entry point and standing rules.
-2. **`docs/conventions/stack-profile.md`** — the stack-specific hunt list, the framework docs to trust over your training data, and the skills to load. Load every skill it names for the surface the diff touches.
-3. **Every `.md` in `docs/conventions/`.** Repo conventions. List the directory and read every file end to end. Each doc has a "Forbidden pattern" / "Required pattern" structure. Cite by filename + section header.
+1. `CLAUDE.md` and `AGENTS.md` (whichever exist) — the entry point and standing rules. Then `{{AI_DIR}}/skill-extensions/rubber-duk-review.md` if it exists — this repo's additions to this agent; where it contradicts this file, it wins.
+2. **`{{CONVENTIONS_DIR}}/stack-profile.md`** — the stack-specific hunt list, the framework docs to trust over your training data, and the skills to load. Load every skill it names for the surface the diff touches.
+3. **Every `.md` in `{{CONVENTIONS_DIR}}/`.** Repo conventions. List the directory and read every file end to end. Each doc has a "Forbidden pattern" / "Required pattern" structure. Cite by filename + section header.
 <!-- @if pack:dev-workflow -->
 4. Any `{{AI_DIR}}/feature-constitution/<domain>/<slug>/README.md` and any `{{AI_DIR}}/dod/<topic>.md` whose topic overlaps the changed surface. Treat any unchecked DoD item the diff touches as a finding.
 <!-- @endif -->
@@ -28,16 +28,16 @@ A finding that cites a convention doc by filename + rule is stronger than a hand
 ## What you hunt for
 
 ### The stack profile
-Walk the hunt list in `docs/conventions/stack-profile.md` against the diff. Anything that goes against a skill it tells you to load is a finding.
+Walk the hunt list in `{{CONVENTIONS_DIR}}/stack-profile.md` against the diff. Anything that goes against a skill it tells you to load is a finding.
 
-### Convention-doc violations (`docs/conventions/*.md`)
+### Convention-doc violations (`{{CONVENTIONS_DIR}}/*.md`)
 The patterns are mechanical to check. After reading the diff, walk every convention doc and grep the changed files for the forbidden shapes documented there. When the diff is small (≤ ~30 files), check every convention doc against it. When it's large, prioritize the docs whose subject the diff touches.
 
 ### Async-first
 - A sync escape hatch around an async read — a preloaded closure, a sync-after-init accessor, a module-level snapshot, a `get…` over data a `load…` owns. The fix is the flip: make it async and await up the chain.
 - The inverse is **never** a finding: a signature flipped from sync to async with its callers awaiting is the required shape, in a refactor as much as in a feature. Do not file it as a behaviour change, churn or scope creep.
 
-### Comment hygiene (`docs/conventions/comment-policy.md` is authoritative)
+### Comment hygiene (`{{COMMENT_POLICY_PATH}}` is authoritative)
 Comments come in two shapes: **doc comments on functions**, written as API documentation, and **short inline comments at gotchas**. Grade every comment the diff adds — and every one it leaves standing inside a block it touched — against both the shape and the voice.
 
 **The voice test, applied to each sentence:** would it still be true and useful if a different caller used this function tomorrow? If not, it is narrative, and narrative is a finding naming its destination: commit body, test name, work item, or deleted.

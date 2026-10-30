@@ -12,6 +12,9 @@
 #   - git push --no-verify / commit --no-verify (skips hooks)
 #   - git push / commit --no-gpg-sign (skips signing)
 #
+# The git rules apply only to commands that run inside this project (see
+# exit_if_outside_project); rm -rf at the root is blocked everywhere.
+#
 # Edit or delete any match_and_block line your team doesn't want.
 #
 # Reads the command with jq. Without jq it fails closed-ish: the patterns are
@@ -47,6 +50,36 @@ match_and_block 'rm[[:space:]]+-rf[[:space:]]+/[^/a-zA-Z]' \
     "rm -rf rooted at filesystem root"
 match_and_block 'rm[[:space:]]+-rf[[:space:]]+/$' \
     "rm -rf / (literal)"
+
+# Prints nothing and exits 0 — letting the command through — when it runs in
+# a directory outside $CLAUDE_PROJECT_DIR: the payload's cwd, moved by a
+# leading `cd <dir> &&` / `cd <dir>;` and then by `git -C <dir>`. The rules
+# below are this project's conventions, not another repo's. Best effort: with
+# no jq, no project dir, or a directory that does not resolve, the command
+# counts as inside and the guard applies.
+exit_if_outside_project() {
+    local root="${CLAUDE_PROJECT_DIR:-}" dir target here top re
+    [ -n "$root" ] && command -v jq >/dev/null 2>&1 || return 0
+    dir=$(printf '%s' "$input" | jq -r '.cwd // ""' 2>/dev/null || echo "")
+    [ -n "$dir" ] || dir="$PWD"
+    local word='("[^"]+"|'"'"'[^'"'"']+'"'"'|[^[:space:];&|]+)'
+    for re in "^[[:space:]]*cd[[:space:]]+${word}[[:space:]]*(&&|;)" "git[[:space:]]+-C[[:space:]]+${word}"; do
+        [[ $cmd =~ $re ]] || continue
+        target="${BASH_REMATCH[1]}"
+        target="${target#\"}"; target="${target%\"}"; target="${target#\'}"; target="${target%\'}"
+        target="${target/#\~/$HOME}"
+        case "$target" in /* | [A-Za-z]:*) dir="$target" ;; *) dir="$dir/$target" ;; esac
+    done
+    here=$(cd "$dir" 2>/dev/null && pwd -P) || return 0
+    top=$(cd "$root" 2>/dev/null && pwd -P) || return 0
+    case "$here/" in "$top"/*) return 0 ;; esac
+    exit 0
+}
+
+# rm -rf at the filesystem root is checked above wherever it runs; the git
+# rules are this project's and stop at its edge.
+exit_if_outside_project
+
 match_and_block 'git[[:space:]]+push.*--force' \
     "git push --force (rewrites remote history)"
 match_and_block 'git[[:space:]]+push.*--force-with-lease' \
